@@ -1,0 +1,4 @@
+.env
+coverage.out
+e2e-fixtures/
+/repos/
