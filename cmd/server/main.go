@@ -67,7 +67,7 @@ func run() error {
 
 	server := &http.Server{
 		Addr:              cfg.listenAddr,
-		Handler:           api.NewRouter(spaFiles),
+		Handler:           api.NewRouter(pool, cfg.cookieSecure, spaFiles),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 

@@ -3,12 +3,15 @@ package api
 import (
 	"encoding/json"
 	"io/fs"
+	"log/slog"
 	"net/http"
 	"path"
 	"strings"
 
+	"github.com/alexedwards/scs/v2"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type errorResponse struct {
@@ -16,15 +19,38 @@ type errorResponse struct {
 	Message string `json:"message"`
 }
 
-func NewRouter(spaFiles fs.FS) http.Handler {
+type server struct {
+	pool     *pgxpool.Pool
+	sessions *scs.SessionManager
+}
+
+func NewRouter(pool *pgxpool.Pool, cookieSecure bool, spaFiles fs.FS) http.Handler {
+	s := &server{pool: pool, sessions: newSessionManager(pool, cookieSecure)}
+
 	router := chi.NewRouter()
 	router.Use(middleware.RequestID)
 	router.Use(middleware.Recoverer)
 	router.Use(middleware.Compress(5))
 
 	router.Route("/api", func(apiRouter chi.Router) {
+		apiRouter.Use(http.NewCrossOriginProtection().Handler)
+		apiRouter.Use(s.sessions.LoadAndSave)
 		apiRouter.NotFound(func(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusNotFound, "not_found", "resource not found")
+		})
+
+		apiRouter.Post("/auth/register", s.register)
+		apiRouter.Post("/auth/login", s.login)
+
+		apiRouter.Group(func(signedIn chi.Router) {
+			signedIn.Use(s.requireSession)
+			signedIn.Post("/auth/logout", s.logout)
+			signedIn.Get("/auth/me", s.getMe)
+			signedIn.Get("/students", s.listStudents)
+			signedIn.Post("/students", s.createStudent)
+			signedIn.Get("/students/{studentId}", s.getStudent)
+			signedIn.Put("/students/{studentId}", s.updateStudent)
+			signedIn.Delete("/students/{studentId}", s.deleteStudent)
 		})
 	})
 
@@ -33,10 +59,27 @@ func NewRouter(spaFiles fs.FS) http.Handler {
 	return router
 }
 
-func writeError(w http.ResponseWriter, status int, code, message string) {
+func readJSON(w http.ResponseWriter, r *http.Request, target any) bool {
+	if err := json.NewDecoder(r.Body).Decode(target); err != nil {
+		writeError(w, http.StatusBadRequest, "bad_request", "request body must be valid JSON")
+		return false
+	}
+	return true
+}
+
+func writeJSON(w http.ResponseWriter, status int, value any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(errorResponse{Code: code, Message: message})
+	_ = json.NewEncoder(w).Encode(value)
+}
+
+func writeError(w http.ResponseWriter, status int, code, message string) {
+	writeJSON(w, status, errorResponse{Code: code, Message: message})
+}
+
+func writeInternalError(w http.ResponseWriter, r *http.Request, err error) {
+	slog.Error("request failed", "method", r.Method, "path", r.URL.Path, "error", err)
+	writeError(w, http.StatusInternalServerError, "internal_error", "internal server error")
 }
 
 func spaHandler(spaFiles fs.FS) http.HandlerFunc {
