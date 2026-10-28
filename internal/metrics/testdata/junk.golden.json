@@ -1,0 +1,42 @@
+{
+  "activity": [
+    {
+      "date": "2026-09-07",
+      "commits": 3,
+      "linesChanged": 84
+    }
+  ],
+  "commitSizes": {
+    "buckets": [
+      {
+        "label": "0",
+        "count": 1
+      },
+      {
+        "label": "1-10",
+        "count": 0
+      },
+      {
+        "label": "11-50",
+        "count": 1
+      },
+      {
+        "label": "51-200",
+        "count": 1
+      },
+      {
+        "label": "201-1000",
+        "count": 0
+      },
+      {
+        "label": ">1000",
+        "count": 0
+      }
+    ],
+    "mean": 28,
+    "median": 11,
+    "nonMergeCommits": 3,
+    "largeCommits": []
+  },
+  "rapidSeries": []
+}

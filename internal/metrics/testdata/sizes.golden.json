@@ -1,0 +1,78 @@
+{
+  "activity": [
+    {
+      "date": "2026-09-07",
+      "commits": 4,
+      "linesChanged": 12
+    },
+    {
+      "date": "2026-09-08",
+      "commits": 8,
+      "linesChanged": 24
+    },
+    {
+      "date": "2026-09-09",
+      "commits": 8,
+      "linesChanged": 24
+    },
+    {
+      "date": "2026-09-10",
+      "commits": 8,
+      "linesChanged": 1600
+    },
+    {
+      "date": "2026-09-11",
+      "commits": 8,
+      "linesChanged": 1600
+    },
+    {
+      "date": "2026-09-12",
+      "commits": 5,
+      "linesChanged": 2300
+    }
+  ],
+  "commitSizes": {
+    "buckets": [
+      {
+        "label": "0",
+        "count": 0
+      },
+      {
+        "label": "1-10",
+        "count": 20
+      },
+      {
+        "label": "11-50",
+        "count": 0
+      },
+      {
+        "label": "51-200",
+        "count": 20
+      },
+      {
+        "label": "201-1000",
+        "count": 0
+      },
+      {
+        "label": ">1000",
+        "count": 1
+      }
+    ],
+    "mean": 135.609756097561,
+    "median": 200,
+    "nonMergeCommits": 41,
+    "largeCommits": [
+      {
+        "sha": "ad511028932f444b8289403e4da3378ea643e281",
+        "authorName": "Ivan Petrenko",
+        "authorEmail": "ivan.petrenko@example.com",
+        "authoredAt": "2026-09-12T10:00:00Z",
+        "message": "Add generated data",
+        "isMerge": false,
+        "linesAdded": 1500,
+        "linesDeleted": 0
+      }
+    ]
+  },
+  "rapidSeries": []
+}

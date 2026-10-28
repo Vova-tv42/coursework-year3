@@ -1,0 +1,99 @@
+{
+  "activity": [
+    {
+      "date": "2026-09-07",
+      "commits": 4,
+      "linesChanged": 4
+    },
+    {
+      "date": "2026-09-08",
+      "commits": 2,
+      "linesChanged": 6
+    },
+    {
+      "date": "2026-09-09",
+      "commits": 4,
+      "linesChanged": 4
+    }
+  ],
+  "commitSizes": {
+    "buckets": [
+      {
+        "label": "0",
+        "count": 0
+      },
+      {
+        "label": "1-10",
+        "count": 10
+      },
+      {
+        "label": "11-50",
+        "count": 0
+      },
+      {
+        "label": "51-200",
+        "count": 0
+      },
+      {
+        "label": "201-1000",
+        "count": 0
+      },
+      {
+        "label": ">1000",
+        "count": 0
+      }
+    ],
+    "mean": 1.4,
+    "median": 1,
+    "nonMergeCommits": 10,
+    "largeCommits": []
+  },
+  "rapidSeries": [
+    {
+      "startedAt": "2026-09-07T10:00:00Z",
+      "endedAt": "2026-09-07T10:01:20Z",
+      "commits": [
+        {
+          "sha": "cbde4ec312cb40230c0f66ce7cb2b916c15a31d7",
+          "authorName": "Ivan Petrenko",
+          "authorEmail": "ivan.petrenko@example.com",
+          "authoredAt": "2026-09-07T10:00:00Z",
+          "message": "Tweak form 1",
+          "isMerge": false,
+          "linesAdded": 1,
+          "linesDeleted": 0
+        },
+        {
+          "sha": "baf66d74b274438b2dd1f40f5fdd7f3dcd30019b",
+          "authorName": "Ivan Petrenko",
+          "authorEmail": "ivan.petrenko@example.com",
+          "authoredAt": "2026-09-07T10:00:20Z",
+          "message": "Tweak form 2",
+          "isMerge": false,
+          "linesAdded": 1,
+          "linesDeleted": 0
+        },
+        {
+          "sha": "ae0661ea52d94bc7bafbd81e698d92cce6eb063f",
+          "authorName": "Ivan Petrenko",
+          "authorEmail": "ivan.petrenko@example.com",
+          "authoredAt": "2026-09-07T10:00:20Z",
+          "message": "Tweak form 3",
+          "isMerge": false,
+          "linesAdded": 1,
+          "linesDeleted": 0
+        },
+        {
+          "sha": "28bd4f388181b496e642a6b4a0abd37da3e702c7",
+          "authorName": "Ivan Petrenko",
+          "authorEmail": "ivan.petrenko@example.com",
+          "authoredAt": "2026-09-07T10:01:20Z",
+          "message": "Tweak form 4",
+          "isMerge": false,
+          "linesAdded": 1,
+          "linesDeleted": 0
+        }
+      ]
+    }
+  ]
+}
