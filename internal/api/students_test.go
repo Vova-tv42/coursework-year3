@@ -11,6 +11,7 @@ import (
 	"net/http/cookiejar"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 	"testing/fstest"
 
@@ -154,13 +155,13 @@ func requireError(t *testing.T, response apiResponse, status int, code string) {
 	require.Equal(t, code, decode[errorResponse](t, response).Code)
 }
 
-func (testAPI *testAPI) register(login, role string, stream *string) *apiClient {
+func (testAPI *testAPI) register(name, role string, stream *string) *apiClient {
 	testAPI.t.Helper()
 	client := testAPI.newClient()
 	response := client.call(http.MethodPost, "/auth/register", registerRequest{
-		Login:       login,
+		Email:       name + "@example.com",
 		Password:    testPassword,
-		DisplayName: "User " + login,
+		DisplayName: "User " + name,
 		Role:        role,
 		Stream:      stream,
 	})
@@ -197,11 +198,12 @@ func streamOf(stream string) *string {
 
 func TestRegisterValidatesInput(t *testing.T) {
 	testAPI := newTestAPI(t)
-	valid := registerRequest{Login: "anna.k", Password: testPassword, DisplayName: "Anna", Role: roleSupervisor}
+	valid := registerRequest{Email: "anna.k@example.com", Password: testPassword, DisplayName: "Anna", Role: roleSupervisor}
 
 	testCases := map[string]func(request *registerRequest){
-		"short login":                func(request *registerRequest) { request.Login = "an" },
-		"login with spaces":          func(request *registerRequest) { request.Login = "anna k" },
+		"email without at sign":      func(request *registerRequest) { request.Email = "anna.example.com" },
+		"email with display name":    func(request *registerRequest) { request.Email = "anna <anna@example.com>" },
+		"email over length limit":    func(request *registerRequest) { request.Email = strings.Repeat("a", 250) + "@example.com" },
 		"short password":             func(request *registerRequest) { request.Password = "1234567" },
 		"password over bcrypt limit": func(request *registerRequest) { request.Password = string(make([]byte, 73)) },
 		"empty display name":         func(request *registerRequest) { request.DisplayName = "" },
@@ -225,22 +227,22 @@ func TestRegisterValidatesInput(t *testing.T) {
 	requireError(t, response, http.StatusBadRequest, "bad_request")
 }
 
-func TestRegisterSignsInAndRejectsTakenLogin(t *testing.T) {
+func TestRegisterSignsInAndRejectsTakenEmail(t *testing.T) {
 	testAPI := newTestAPI(t)
 	coordinator := testAPI.register("coord", roleCoordinator, streamOf("master"))
 
 	response := coordinator.call(http.MethodGet, "/auth/me", nil)
 	require.Equal(t, http.StatusOK, response.status)
 	me := decode[user](t, response)
-	require.Equal(t, "coord", me.Login)
+	require.Equal(t, "coord@example.com", me.Email)
 	require.Equal(t, roleCoordinator, me.Role)
 	require.Equal(t, streamOf("master"), me.Stream)
 	require.NotContains(t, string(response.body), "password")
 
 	response = testAPI.newClient().call(http.MethodPost, "/auth/register", registerRequest{
-		Login: "coord", Password: testPassword, DisplayName: "Other", Role: roleSupervisor,
+		Email: " Coord@Example.com ", Password: testPassword, DisplayName: "Other", Role: roleSupervisor,
 	})
-	requireError(t, response, http.StatusConflict, "login_taken")
+	requireError(t, response, http.StatusConflict, "email_taken")
 }
 
 func TestLoginAndLogout(t *testing.T) {
@@ -251,14 +253,14 @@ func TestLoginAndLogout(t *testing.T) {
 	requireError(t, client.call(http.MethodGet, "/auth/me", nil), http.StatusUnauthorized, "unauthorized")
 	requireError(t, client.call(http.MethodGet, "/students", nil), http.StatusUnauthorized, "unauthorized")
 
-	wrongPassword := loginRequest{Login: "anna", Password: "wrong-password"}
+	wrongPassword := loginRequest{Email: "anna@example.com", Password: "wrong-password"}
 	requireError(t, client.call(http.MethodPost, "/auth/login", wrongPassword), http.StatusUnauthorized, "invalid_credentials")
-	unknownLogin := loginRequest{Login: "nobody", Password: testPassword}
-	requireError(t, client.call(http.MethodPost, "/auth/login", unknownLogin), http.StatusUnauthorized, "invalid_credentials")
+	unknownEmail := loginRequest{Email: "nobody@example.com", Password: testPassword}
+	requireError(t, client.call(http.MethodPost, "/auth/login", unknownEmail), http.StatusUnauthorized, "invalid_credentials")
 
-	response := client.call(http.MethodPost, "/auth/login", loginRequest{Login: "anna", Password: testPassword})
+	response := client.call(http.MethodPost, "/auth/login", loginRequest{Email: "ANNA@example.com", Password: testPassword})
 	require.Equal(t, http.StatusOK, response.status, string(response.body))
-	require.Equal(t, "anna", decode[user](t, response).Login)
+	require.Equal(t, "anna@example.com", decode[user](t, response).Email)
 	require.Equal(t, http.StatusOK, client.call(http.MethodGet, "/auth/me", nil).status)
 
 	require.Equal(t, http.StatusNoContent, client.call(http.MethodPost, "/auth/logout", nil).status)

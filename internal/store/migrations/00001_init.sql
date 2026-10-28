@@ -7,7 +7,7 @@ CREATE TYPE analysis_status AS ENUM ('never', 'queued', 'running', 'done', 'fail
 
 CREATE TABLE users (
     id bigserial PRIMARY KEY,
-    login text NOT NULL UNIQUE CHECK (login ~ '^[a-zA-Z0-9_.-]{3,50}$'),
+    email text NOT NULL UNIQUE CHECK (email = lower(email) AND char_length(email) <= 254),
     password_hash text NOT NULL,
     display_name text NOT NULL CHECK (char_length(display_name) BETWEEN 1 AND 100),
     role user_role NOT NULL,

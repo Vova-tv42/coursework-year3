@@ -5,8 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"regexp"
+	"net/mail"
 	"slices"
+	"strings"
 	"time"
 	"unicode/utf8"
 
@@ -28,20 +29,20 @@ const (
 	minPasswordBytes     = 8
 	maxPasswordBytes     = 72
 	maxDisplayNameLength = 100
+	maxEmailLength       = 254
 	uniqueViolationCode  = "23505"
 
-	userColumns = "id, login, display_name, role, stream, password_hash"
+	userColumns = "id, email, display_name, role, stream, password_hash"
 )
 
 var (
-	roles        = []string{roleSupervisor, roleCoordinator, roleRepoManager}
-	streams      = []string{"bachelor", "master"}
-	loginPattern = regexp.MustCompile(`^[a-zA-Z0-9_.-]{3,50}$`)
+	roles   = []string{roleSupervisor, roleCoordinator, roleRepoManager}
+	streams = []string{"bachelor", "master"}
 )
 
 type user struct {
 	ID           int64   `json:"id"`
-	Login        string  `json:"login"`
+	Email        string  `json:"email"`
 	DisplayName  string  `json:"displayName"`
 	Role         string  `json:"role"`
 	Stream       *string `json:"stream,omitempty"`
@@ -49,7 +50,7 @@ type user struct {
 }
 
 type registerRequest struct {
-	Login       string  `json:"login"`
+	Email       string  `json:"email"`
 	Password    string  `json:"password"`
 	DisplayName string  `json:"displayName"`
 	Role        string  `json:"role"`
@@ -57,7 +58,7 @@ type registerRequest struct {
 }
 
 type loginRequest struct {
-	Login    string `json:"login"`
+	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
@@ -100,7 +101,7 @@ func currentUser(r *http.Request) user {
 
 func scanUser(row pgx.Row) (user, error) {
 	var scanned user
-	err := row.Scan(&scanned.ID, &scanned.Login, &scanned.DisplayName, &scanned.Role, &scanned.Stream, &scanned.PasswordHash)
+	err := row.Scan(&scanned.ID, &scanned.Email, &scanned.DisplayName, &scanned.Role, &scanned.Stream, &scanned.PasswordHash)
 	return scanned, err
 }
 
@@ -109,6 +110,7 @@ func (s *server) register(w http.ResponseWriter, r *http.Request) {
 	if !readJSON(w, r, &request) {
 		return
 	}
+	request.Email = normalizeEmail(request.Email)
 	if err := validateRegistration(request); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid_input", err.Error())
 		return
@@ -121,14 +123,14 @@ func (s *server) register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	newUser, err := scanUser(s.pool.QueryRow(r.Context(), `
-		INSERT INTO users (login, password_hash, display_name, role, stream)
+		INSERT INTO users (email, password_hash, display_name, role, stream)
 		VALUES ($1, $2, $3, $4, $5)
 		RETURNING `+userColumns,
-		request.Login, string(passwordHash), request.DisplayName, request.Role, request.Stream))
+		request.Email, string(passwordHash), request.DisplayName, request.Role, request.Stream))
 	var postgresError *pgconn.PgError
-	isLoginTaken := errors.As(err, &postgresError) && postgresError.Code == uniqueViolationCode
-	if isLoginTaken {
-		writeError(w, http.StatusConflict, "login_taken", "this login is already taken")
+	isEmailTaken := errors.As(err, &postgresError) && postgresError.Code == uniqueViolationCode
+	if isEmailTaken {
+		writeError(w, http.StatusConflict, "email_taken", "this email is already registered")
 		return
 	}
 	if err != nil {
@@ -150,8 +152,8 @@ func validateRegistration(request registerRequest) error {
 	displayNameLength := utf8.RuneCountInString(request.DisplayName)
 
 	switch {
-	case !loginPattern.MatchString(request.Login):
-		return errors.New("login must be 3-50 characters: latin letters, digits, '_', '.' or '-'")
+	case !isValidEmail(request.Email):
+		return errors.New("email must be a valid address like name@example.com")
 
 	case passwordBytes < minPasswordBytes || passwordBytes > maxPasswordBytes:
 		return fmt.Errorf("password must be %d-%d bytes long", minPasswordBytes, maxPasswordBytes)
@@ -175,15 +177,25 @@ func validateRegistration(request registerRequest) error {
 	return nil
 }
 
+func normalizeEmail(email string) string {
+	return strings.ToLower(strings.TrimSpace(email))
+}
+
+func isValidEmail(email string) bool {
+	address, err := mail.ParseAddress(email)
+	isPlainAddress := err == nil && address.Address == email
+	return isPlainAddress && len(email) <= maxEmailLength
+}
+
 func (s *server) login(w http.ResponseWriter, r *http.Request) {
 	var request loginRequest
 	if !readJSON(w, r, &request) {
 		return
 	}
 
-	foundUser, err := scanUser(s.pool.QueryRow(r.Context(), "SELECT "+userColumns+" FROM users WHERE login = $1", request.Login))
+	foundUser, err := scanUser(s.pool.QueryRow(r.Context(), "SELECT "+userColumns+" FROM users WHERE email = $1", normalizeEmail(request.Email)))
 	if errors.Is(err, pgx.ErrNoRows) {
-		writeError(w, http.StatusUnauthorized, "invalid_credentials", "wrong login or password")
+		writeError(w, http.StatusUnauthorized, "invalid_credentials", "wrong email or password")
 		return
 	}
 	if err != nil {
@@ -193,7 +205,7 @@ func (s *server) login(w http.ResponseWriter, r *http.Request) {
 
 	isWrongPassword := bcrypt.CompareHashAndPassword([]byte(foundUser.PasswordHash), []byte(request.Password)) != nil
 	if isWrongPassword {
-		writeError(w, http.StatusUnauthorized, "invalid_credentials", "wrong login or password")
+		writeError(w, http.StatusUnauthorized, "invalid_credentials", "wrong email or password")
 		return
 	}
 
