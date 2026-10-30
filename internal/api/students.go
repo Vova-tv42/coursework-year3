@@ -15,6 +15,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
+
+	"coursework/internal/worker"
 )
 
 const maxFullNameLength = 200
@@ -23,7 +25,7 @@ const maxFullNameLength = 200
 const visibleStudentsQuery = `
 	SELECT s.id, s.full_name, s.stream, s.supervisor_id, supervisor.display_name,
 		r.id, r.clone_url, r.default_branch, r.status, r.status_reason,
-		r.analysis_started_at, r.analysis_finished_at, r.last_commit_at
+		r.analysis_started_at, r.analysis_finished_at, r.last_commit_at, r.hosting_metadata
 	FROM students s
 	JOIN users supervisor ON supervisor.id = s.supervisor_id
 	JOIN repositories r ON r.student_id = s.id
@@ -52,15 +54,16 @@ type studentOverview struct {
 }
 
 type repository struct {
-	ID                 int64      `json:"id"`
-	StudentID          int64      `json:"studentId"`
-	CloneURL           string     `json:"cloneUrl"`
-	DefaultBranch      *string    `json:"defaultBranch"`
-	Status             string     `json:"status"`
-	StatusReason       *string    `json:"statusReason"`
-	AnalysisStartedAt  *time.Time `json:"analysisStartedAt"`
-	AnalysisFinishedAt *time.Time `json:"analysisFinishedAt"`
-	LastCommitAt       *time.Time `json:"lastCommitAt"`
+	ID                 int64                   `json:"id"`
+	StudentID          int64                   `json:"studentId"`
+	CloneURL           string                  `json:"cloneUrl"`
+	DefaultBranch      *string                 `json:"defaultBranch"`
+	Status             string                  `json:"status"`
+	StatusReason       *string                 `json:"statusReason"`
+	AnalysisStartedAt  *time.Time              `json:"analysisStartedAt"`
+	AnalysisFinishedAt *time.Time              `json:"analysisFinishedAt"`
+	LastCommitAt       *time.Time              `json:"lastCommitAt"`
+	Hosting            *worker.HostingMetadata `json:"hosting"`
 }
 
 func (s *server) listStudents(w http.ResponseWriter, r *http.Request) {
@@ -187,13 +190,17 @@ func (s *server) updateStudent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := resetRepositoryIfCloneURLChanged(r.Context(), tx, studentID, input.CloneURL); err != nil {
+	repositoryID, isCloneURLChanged, err := resetRepositoryIfCloneURLChanged(r.Context(), tx, studentID, input.CloneURL)
+	if err != nil {
 		writeInternalError(w, r, err)
 		return
 	}
 	if err := tx.Commit(r.Context()); err != nil {
 		writeInternalError(w, r, err)
 		return
+	}
+	if isCloneURLChanged {
+		s.removeClone(repositoryID)
 	}
 
 	student, err := s.findVisibleStudent(r.Context(), viewer, studentID)
@@ -204,9 +211,8 @@ func (s *server) updateStudent(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, student)
 }
 
-func resetRepositoryIfCloneURLChanged(ctx context.Context, tx pgx.Tx, studentID int64, cloneURL string) error {
-	var repositoryID int64
-	err := tx.QueryRow(ctx, `
+func resetRepositoryIfCloneURLChanged(ctx context.Context, tx pgx.Tx, studentID int64, cloneURL string) (repositoryID int64, isChanged bool, err error) {
+	err = tx.QueryRow(ctx, `
 		UPDATE repositories
 		SET clone_url = $2, status = 'never', status_reason = NULL, default_branch = NULL,
 			hosting_metadata = NULL, analysis_started_at = NULL, analysis_finished_at = NULL,
@@ -216,18 +222,18 @@ func resetRepositoryIfCloneURLChanged(ctx context.Context, tx pgx.Tx, studentID 
 		studentID, cloneURL).Scan(&repositoryID)
 	isCloneURLUnchanged := errors.Is(err, pgx.ErrNoRows)
 	if isCloneURLUnchanged {
-		return nil
+		return 0, false, nil
 	}
 	if err != nil {
-		return fmt.Errorf("reset repository: %w", err)
+		return 0, false, fmt.Errorf("reset repository: %w", err)
 	}
 
 	for _, table := range []string{"commits", "snapshot_files", "rapid_series"} {
 		if _, err := tx.Exec(ctx, "DELETE FROM "+table+" WHERE repository_id = $1", repositoryID); err != nil {
-			return fmt.Errorf("delete %s: %w", table, err)
+			return 0, false, fmt.Errorf("delete %s: %w", table, err)
 		}
 	}
-	return nil
+	return repositoryID, true, nil
 }
 
 func (s *server) deleteStudent(w http.ResponseWriter, r *http.Request) {
@@ -237,16 +243,24 @@ func (s *server) deleteStudent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := s.pool.Exec(r.Context(),
-		"DELETE FROM students WHERE id = $1 AND supervisor_id = $2", studentID, currentUser(r).ID)
+	var repositoryID int64
+	err = s.pool.QueryRow(r.Context(), `
+		DELETE FROM students s
+		USING repositories r
+		WHERE r.student_id = s.id AND s.id = $1 AND s.supervisor_id = $2
+		RETURNING r.id`,
+		studentID, currentUser(r).ID).Scan(&repositoryID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		writeStudentNotFound(w)
+		return
+	}
+
 	if err != nil {
 		writeInternalError(w, r, err)
 		return
 	}
-	if result.RowsAffected() == 0 {
-		writeStudentNotFound(w)
-		return
-	}
+
+	s.removeClone(repositoryID)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -262,7 +276,7 @@ func scanStudent(row pgx.Row, viewer user) (studentOverview, error) {
 	repo := &student.Repository
 	err := row.Scan(&student.ID, &student.FullName, &student.Stream, &supervisorID, &student.SupervisorName,
 		&repo.ID, &repo.CloneURL, &repo.DefaultBranch, &repo.Status, &repo.StatusReason,
-		&repo.AnalysisStartedAt, &repo.AnalysisFinishedAt, &repo.LastCommitAt)
+		&repo.AnalysisStartedAt, &repo.AnalysisFinishedAt, &repo.LastCommitAt, &repo.Hosting)
 
 	repo.StudentID = student.ID
 	student.CanEdit = supervisorID == viewer.ID

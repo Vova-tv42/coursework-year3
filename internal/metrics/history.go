@@ -227,7 +227,7 @@ func mean(values []int) float64 {
 	total := 0
 	for _, value := range values {
 		total += value
-
+	}
 
 	return float64(total) / float64(len(values))
 }

@@ -56,6 +56,16 @@ func Log(ctx context.Context, runner Runner, dir, revRange string) ([]Commit, er
 	return ParseLog(output)
 }
 
+// CommitOrder returns the SHAs reachable from HEAD in the same order as Log
+func CommitOrder(ctx context.Context, runner Runner, dir string) ([]string, error) {
+	output, err := runner.Run(ctx, dir, "rev-list", "--date-order", "HEAD", "--")
+	if err != nil {
+		return nil, err
+	}
+
+	return strings.Fields(string(output)), nil
+}
+
 func ParseLog(output []byte) ([]Commit, error) {
 	var commits []Commit
 	for _, record := range strings.Split(string(output), recordSeparator) {

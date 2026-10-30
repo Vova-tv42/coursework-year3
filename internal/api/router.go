@@ -11,7 +11,9 @@ import (
 	"github.com/alexedwards/scs/v2"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/riverqueue/river"
 )
 
 type errorResponse struct {
@@ -22,10 +24,12 @@ type errorResponse struct {
 type server struct {
 	pool     *pgxpool.Pool
 	sessions *scs.SessionManager
+	jobs     *river.Client[pgx.Tx]
+	reposDir string
 }
 
-func NewRouter(pool *pgxpool.Pool, cookieSecure bool, spaFiles fs.FS) http.Handler {
-	s := &server{pool: pool, sessions: newSessionManager(pool, cookieSecure)}
+func NewRouter(pool *pgxpool.Pool, jobs *river.Client[pgx.Tx], reposDir string, cookieSecure bool, spaFiles fs.FS) http.Handler {
+	s := &server{pool: pool, sessions: newSessionManager(pool, cookieSecure), jobs: jobs, reposDir: reposDir}
 
 	router := chi.NewRouter()
 	router.Use(middleware.RequestID)
@@ -51,6 +55,8 @@ func NewRouter(pool *pgxpool.Pool, cookieSecure bool, spaFiles fs.FS) http.Handl
 			signedIn.Get("/students/{studentId}", s.getStudent)
 			signedIn.Put("/students/{studentId}", s.updateStudent)
 			signedIn.Delete("/students/{studentId}", s.deleteStudent)
+			signedIn.Get("/repos/{repoId}", s.getRepository)
+			signedIn.Post("/repos/{repoId}/analyze", s.analyzeRepository)
 		})
 	})
 

@@ -16,82 +16,53 @@ import (
 	"testing/fstest"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/riverqueue/river"
+	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 	"github.com/stretchr/testify/require"
-	"github.com/testcontainers/testcontainers-go"
-	"github.com/testcontainers/testcontainers-go/modules/postgres"
 
-	"coursework/internal/store"
+	"coursework/internal/testdb"
 )
 
 const testPassword = "correct-horse"
 
-var testDatabase *postgres.PostgresContainer
+var testDatabase *testdb.Database
 
 func TestMain(m *testing.M) {
 	os.Exit(runTests(m))
 }
 
 func runTests(m *testing.M) int {
-	ctx := context.Background()
-	container, err := postgres.Run(ctx, "postgres:17-alpine",
-		postgres.WithDatabase("commitradar_test"),
-		postgres.WithUsername("test"),
-		postgres.WithPassword("test"),
-		postgres.WithSQLDriver("pgx"),
-		postgres.BasicWaitStrategies(),
-	)
-	defer func() { _ = testcontainers.TerminateContainer(container) }()
+	database, err := testdb.Start(context.Background())
+	defer database.Terminate()
 	if err != nil {
-		log.Printf("start postgres container: %v", err)
+		log.Printf("start test database: %v", err)
 		return 1
 	}
 
-	if err := migrateAndSnapshot(ctx, container); err != nil {
-		log.Print(err)
-		return 1
-	}
-	testDatabase = container
+	testDatabase = database
 	return m.Run()
 }
 
-func migrateAndSnapshot(ctx context.Context, container *postgres.PostgresContainer) error {
-	databaseURL, err := container.ConnectionString(ctx, "sslmode=disable")
-	if err != nil {
-		return err
-	}
-	pool, err := store.Open(ctx, databaseURL)
-	if err != nil {
-		return err
-	}
-	err = store.Migrate(ctx, pool)
-	pool.Close()
-	if err != nil {
-		return err
-	}
-	return container.Snapshot(ctx)
-}
-
 type testAPI struct {
-	t       *testing.T
-	baseURL string
-	pool    *pgxpool.Pool
+	t        *testing.T
+	baseURL  string
+	pool     *pgxpool.Pool
+	reposDir string
 }
 
 func newTestAPI(t *testing.T) *testAPI {
 	t.Helper()
-	ctx := t.Context()
-	require.NoError(t, testDatabase.Restore(ctx))
+	pool := testDatabase.NewPool(t)
+	reposDir := t.TempDir()
 
-	databaseURL, err := testDatabase.ConnectionString(ctx, "sslmode=disable")
+	// Without workers the client only inserts jobs, so analyses stay queued in these tests
+	jobs, err := river.NewClient(riverpgxv5.New(pool), &river.Config{})
 	require.NoError(t, err)
-	pool, err := store.Open(ctx, databaseURL)
-	require.NoError(t, err)
-	t.Cleanup(pool.Close)
 
-	server := httptest.NewServer(NewRouter(pool, false, fstest.MapFS{}))
+	server := httptest.NewServer(NewRouter(pool, jobs, reposDir, false, fstest.MapFS{}))
 	t.Cleanup(server.Close)
 
-	return &testAPI{t: t, baseURL: server.URL, pool: pool}
+	return &testAPI{t: t, baseURL: server.URL, pool: pool, reposDir: reposDir}
 }
 
 type apiClient struct {

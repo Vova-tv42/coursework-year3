@@ -16,10 +16,14 @@ import (
 
 	"coursework/internal/api"
 	"coursework/internal/store"
+	"coursework/internal/worker"
 	"coursework/web"
 )
 
-const shutdownTimeout = 10 * time.Second
+const (
+	shutdownTimeout = 10 * time.Second
+	bytesPerMB      = 1024 * 1024
+)
 
 type config struct {
 	databaseURL     string
@@ -65,9 +69,23 @@ func run() error {
 		return fmt.Errorf("open embedded web files: %w", err)
 	}
 
+	jobs, err := worker.NewClient(pool, worker.Config{
+		ReposDir:       cfg.reposDir,
+		SizeLimitBytes: int64(cfg.repoSizeLimitMB) * bytesPerMB,
+		GitToken:       cfg.gitToken,
+	})
+
+	if err != nil {
+		return fmt.Errorf("create job client: %w", err)
+	}
+
+	if err := jobs.Start(ctx); err != nil {
+		return fmt.Errorf("start job client: %w", err)
+	}
+
 	server := &http.Server{
 		Addr:              cfg.listenAddr,
-		Handler:           api.NewRouter(pool, cfg.cookieSecure, spaFiles),
+		Handler:           api.NewRouter(pool, jobs, cfg.reposDir, cfg.cookieSecure, spaFiles),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 
@@ -94,7 +112,8 @@ func run() error {
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer cancel()
 
-	return server.Shutdown(shutdownCtx)
+	// Running analyses are cancelled on shutdown and record a "failed" status with the reason
+	return errors.Join(server.Shutdown(shutdownCtx), jobs.StopAndCancel(shutdownCtx))
 }
 
 func loadConfig() (config, error) {
