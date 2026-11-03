@@ -31,6 +31,12 @@ export interface StudentInput {
   cloneUrl: string;
 }
 
+export interface HostingMetadata {
+  available: boolean;
+  defaultBranch?: string;
+  pushedAt?: string;
+}
+
 export interface Repository {
   id: number;
   studentId: number;
@@ -41,6 +47,11 @@ export interface Repository {
   analysisStartedAt: string | null;
   analysisFinishedAt: string | null;
   lastCommitAt: string | null;
+  hosting: HostingMetadata | null;
+}
+
+export interface StudentFlags {
+  rapidSeries: boolean;
 }
 
 export interface StudentOverview {
@@ -50,6 +61,49 @@ export interface StudentOverview {
   supervisorName: string;
   canEdit: boolean;
   repository: Repository;
+  flags: StudentFlags;
+}
+
+export interface StudentFilters {
+  stream: Stream | null;
+  rapidSeries: boolean | null;
+}
+
+export interface CommitSummary {
+  sha: string;
+  authorName: string;
+  authorEmail: string;
+  authoredAt: string;
+  message: string;
+  isMerge: boolean;
+  linesAdded: number;
+  linesDeleted: number;
+}
+
+export interface DayActivity {
+  date: string;
+  commits: number;
+  linesChanged: number;
+}
+
+export interface RapidSeries {
+  startedAt: string;
+  endedAt: string;
+  commits: CommitSummary[];
+}
+
+export interface Activity {
+  timeZone: string;
+  days: DayActivity[];
+  rapidSeries: RapidSeries[];
+}
+
+export interface CommitSizes {
+  buckets: { label: string; count: number }[];
+  mean: number;
+  median: number;
+  nonMergeCommits: number;
+  largeCommits: CommitSummary[];
 }
 
 interface ErrorResponse {
@@ -75,6 +129,30 @@ export const statusLabels: Record<AnalysisStatus, string> = {
   done: "Done",
   failed: "Failed",
 };
+
+export const statusBadgeVariants: Record<
+  AnalysisStatus,
+  "outline" | "secondary" | "default" | "destructive"
+> = {
+  never: "outline",
+  queued: "secondary",
+  running: "secondary",
+  done: "default",
+  failed: "destructive",
+};
+
+export function isAnalysisInProgress(status: AnalysisStatus) {
+  return status === "queued" || status === "running";
+}
+
+function studentsPath({ stream, rapidSeries }: StudentFilters) {
+  const params = new URLSearchParams();
+  if (stream) params.set("stream", stream);
+  if (rapidSeries !== null) params.set("rapidSeries", String(rapidSeries));
+
+  const query = params.toString();
+  return query ? `/students?${query}` : "/students";
+}
 
 export class ApiError extends Error {
   readonly status: number;
@@ -125,11 +203,8 @@ export const api = {
     request<User>("POST", "/auth/register", input),
   logout: () => request<void>("POST", "/auth/logout"),
 
-  listStudents: (stream: Stream | null) =>
-    request<StudentOverview[]>(
-      "GET",
-      stream ? `/students?stream=${stream}` : "/students",
-    ),
+  listStudents: (filters: StudentFilters) =>
+    request<StudentOverview[]>("GET", studentsPath(filters)),
   getStudent: (studentId: string) =>
     request<StudentOverview>("GET", `/students/${studentId}`),
   createStudent: (input: StudentInput) =>
@@ -138,6 +213,15 @@ export const api = {
     request<StudentOverview>("PUT", `/students/${studentId}`, input),
   deleteStudent: (studentId: number) =>
     request<void>("DELETE", `/students/${studentId}`),
+
+  getRepository: (repositoryId: number) =>
+    request<Repository>("GET", `/repos/${repositoryId}`),
+  analyzeRepository: (repositoryId: number) =>
+    request<Repository>("POST", `/repos/${repositoryId}/analyze`),
+  getActivity: (repositoryId: number) =>
+    request<Activity>("GET", `/repos/${repositoryId}/activity`),
+  getCommitSizes: (repositoryId: number) =>
+    request<CommitSizes>("GET", `/repos/${repositoryId}/commit-sizes`),
 };
 
 export function isApiErrorWithStatus(error: unknown, status: number) {
@@ -157,14 +241,38 @@ export const queryClient = new QueryClient({
   },
 });
 
-export const studentsQuery = (stream: Stream | null) =>
+export const studentsQuery = (filters: StudentFilters) =>
   queryOptions({
-    queryKey: ["students", stream ?? "all"],
-    queryFn: () => api.listStudents(stream),
+    queryKey: ["students", filters],
+    queryFn: () => api.listStudents(filters),
   });
 
 export const studentQuery = (studentId: string) =>
   queryOptions({
     queryKey: ["student", studentId],
     queryFn: () => api.getStudent(studentId),
+  });
+
+export const repositoryQuery = (repositoryId: number) =>
+  queryOptions({
+    queryKey: ["repository", repositoryId],
+    queryFn: () => api.getRepository(repositoryId),
+  });
+
+// Every analysis result shares this key prefix, so a finished analysis refreshes all of them at once
+export const analysisResultsKey = (repositoryId: number) => [
+  "analysis",
+  repositoryId,
+];
+
+export const activityQuery = (repositoryId: number) =>
+  queryOptions({
+    queryKey: [...analysisResultsKey(repositoryId), "activity"],
+    queryFn: () => api.getActivity(repositoryId),
+  });
+
+export const commitSizesQuery = (repositoryId: number) =>
+  queryOptions({
+    queryKey: [...analysisResultsKey(repositoryId), "commit-sizes"],
+    queryFn: () => api.getCommitSizes(repositoryId),
   });

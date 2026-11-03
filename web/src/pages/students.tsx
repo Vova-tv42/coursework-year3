@@ -15,10 +15,10 @@ import { toast } from 'sonner'
 import {
   api,
   queryClient,
+  statusBadgeVariants,
   statusLabels,
   streamLabels,
   studentsQuery,
-  type AnalysisStatus,
   type Stream,
   type StudentInput,
   type StudentOverview,
@@ -53,20 +53,17 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 const streamItems = Object.entries(streamLabels).map(([value, label]) => ({ value: value as Stream, label }))
 const streamFilterItems = [{ value: null, label: 'All streams' }, ...streamItems]
-
-const statusBadgeVariants: Record<AnalysisStatus, 'outline' | 'secondary' | 'default' | 'destructive'> = {
-  never: 'outline',
-  queued: 'secondary',
-  running: 'secondary',
-  done: 'default',
-  failed: 'destructive',
-}
+const rapidSeriesFilterItems = [
+  { value: null, label: 'Any commit pattern' },
+  { value: true, label: 'With rapid series' },
+  { value: false, label: 'Without rapid series' },
+]
 
 const lastCommitFormat = new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeZone: 'Europe/Kyiv' })
 
@@ -105,6 +102,11 @@ function createColumns(onEdit: (student: StudentOverview) => void, onDelete: (st
       id: 'status',
       header: 'Analysis',
       cell: (info) => <Badge variant={statusBadgeVariants[info.getValue()]}>{statusLabels[info.getValue()]}</Badge>,
+    }),
+    columnHelper.accessor((student) => student.flags.rapidSeries, {
+      id: 'rapidSeries',
+      header: 'Signals',
+      cell: (info) => info.getValue() && <Badge variant="secondary">Rapid series</Badge>,
     }),
     columnHelper.display({
       id: 'actions',
@@ -184,12 +186,14 @@ function StudentFormDialog({ student, onClose }: { student: StudentOverview | nu
                 <SelectTrigger id="stream" className="w-full">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
-                  {streamItems.map((item) => (
-                    <SelectItem key={item.value} value={item.value}>
-                      {item.label}
-                    </SelectItem>
-                  ))}
+                <SelectContent alignItemWithTrigger={false}>
+                  <SelectGroup>
+                    {streamItems.map((item) => (
+                      <SelectItem key={item.value} value={item.value}>
+                        {item.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
                 </SelectContent>
               </Select>
             </Field>
@@ -260,11 +264,15 @@ export function StudentsPage() {
   const user = useCurrentUser()
   const canAddStudents = user.role === 'supervisor'
   const [streamFilter, setStreamFilter] = useState<Stream | null>(null)
+  const [rapidSeriesFilter, setRapidSeriesFilter] = useState<boolean | null>(null)
   const [formStudent, setFormStudent] = useState<StudentOverview | null>(null)
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [deletingStudent, setDeletingStudent] = useState<StudentOverview | null>(null)
 
-  const students = useQuery({ ...studentsQuery(streamFilter), placeholderData: keepPreviousData })
+  const students = useQuery({
+    ...studentsQuery({ stream: streamFilter, rapidSeries: rapidSeriesFilter }),
+    placeholderData: keepPreviousData,
+  })
 
   const columns = useMemo(
     () =>
@@ -284,8 +292,9 @@ export function StudentsPage() {
     setIsFormOpen(true)
   }
 
-  const emptyMessage = streamFilter
-    ? 'No students in this stream.'
+  const isFiltered = streamFilter !== null || rapidSeriesFilter !== null
+  const emptyMessage = isFiltered
+    ? 'No students match the filters.'
     : canAddStudents
       ? 'No students yet. Add the first one to start tracking a thesis repository.'
       : 'No students are visible to you yet.'
@@ -295,16 +304,36 @@ export function StudentsPage() {
       <CardHeader>
         <CardTitle>Students</CardTitle>
         <CardAction className="flex gap-2">
+          <Select
+            items={rapidSeriesFilterItems}
+            value={rapidSeriesFilter}
+            onValueChange={(value) => setRapidSeriesFilter(value)}
+          >
+            <SelectTrigger aria-label="Rapid series filter">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent alignItemWithTrigger={false}>
+              <SelectGroup>
+                {rapidSeriesFilterItems.map((item) => (
+                  <SelectItem key={item.label} value={item.value}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
           <Select items={streamFilterItems} value={streamFilter} onValueChange={(value) => setStreamFilter(value)}>
             <SelectTrigger aria-label="Stream filter">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
-              {streamFilterItems.map((item) => (
-                <SelectItem key={item.label} value={item.value}>
-                  {item.label}
-                </SelectItem>
-              ))}
+            <SelectContent alignItemWithTrigger={false}>
+              <SelectGroup>
+                {streamFilterItems.map((item) => (
+                  <SelectItem key={item.label} value={item.value}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
             </SelectContent>
           </Select>
           {canAddStudents && (

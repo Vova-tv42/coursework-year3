@@ -21,11 +21,14 @@ import (
 
 const maxFullNameLength = 200
 
+const hasRapidSeriesCondition = "EXISTS (SELECT 1 FROM rapid_series rs WHERE rs.repository_id = r.id)"
+
 // $1 = viewer role, $2 = viewer id, $3 = viewer stream (NULL unless coordinator).
 const visibleStudentsQuery = `
 	SELECT s.id, s.full_name, s.stream, s.supervisor_id, supervisor.display_name,
 		r.id, r.clone_url, r.default_branch, r.status, r.status_reason,
-		r.analysis_started_at, r.analysis_finished_at, r.last_commit_at, r.hosting_metadata
+		r.analysis_started_at, r.analysis_finished_at, r.last_commit_at, r.hosting_metadata,
+		` + hasRapidSeriesCondition + `
 	FROM students s
 	JOIN users supervisor ON supervisor.id = s.supervisor_id
 	JOIN repositories r ON r.student_id = s.id
@@ -45,12 +48,17 @@ type studentInput struct {
 }
 
 type studentOverview struct {
-	ID             int64      `json:"id"`
-	FullName       string     `json:"fullName"`
-	Stream         string     `json:"stream"`
-	SupervisorName string     `json:"supervisorName"`
-	CanEdit        bool       `json:"canEdit"`
-	Repository     repository `json:"repository"`
+	ID             int64        `json:"id"`
+	FullName       string       `json:"fullName"`
+	Stream         string       `json:"stream"`
+	SupervisorName string       `json:"supervisorName"`
+	CanEdit        bool         `json:"canEdit"`
+	Repository     repository   `json:"repository"`
+	Flags          studentFlags `json:"flags"`
+}
+
+type studentFlags struct {
+	RapidSeries bool `json:"rapidSeries"`
 }
 
 type repository struct {
@@ -73,9 +81,18 @@ func (s *server) listStudents(w http.ResponseWriter, r *http.Request) {
 		streamFilter = &stream
 	}
 
-	rows, err := s.pool.Query(r.Context(),
-		visibleStudentsQuery+" AND ($4::text IS NULL OR s.stream::text = $4) ORDER BY s.full_name, s.id",
-		viewer.Role, viewer.ID, viewer.Stream, streamFilter)
+	rapidSeriesFilter, err := parseBoolFilter(r, "rapidSeries")
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_input", err.Error())
+		return
+	}
+
+	rows, err := s.pool.Query(r.Context(), visibleStudentsQuery+`
+		AND ($4::text IS NULL OR s.stream::text = $4)
+		AND ($5::boolean IS NULL OR `+hasRapidSeriesCondition+` = $5)
+		ORDER BY s.full_name, s.id`,
+		viewer.Role, viewer.ID, viewer.Stream, streamFilter, rapidSeriesFilter)
+
 	if err != nil {
 		writeInternalError(w, r, err)
 		return
@@ -276,11 +293,27 @@ func scanStudent(row pgx.Row, viewer user) (studentOverview, error) {
 	repo := &student.Repository
 	err := row.Scan(&student.ID, &student.FullName, &student.Stream, &supervisorID, &student.SupervisorName,
 		&repo.ID, &repo.CloneURL, &repo.DefaultBranch, &repo.Status, &repo.StatusReason,
-		&repo.AnalysisStartedAt, &repo.AnalysisFinishedAt, &repo.LastCommitAt, &repo.Hosting)
+		&repo.AnalysisStartedAt, &repo.AnalysisFinishedAt, &repo.LastCommitAt, &repo.Hosting,
+		&student.Flags.RapidSeries)
 
 	repo.StudentID = student.ID
 	student.CanEdit = supervisorID == viewer.ID
 	return student, err
+}
+
+// returns nil when the query parameter is not set
+func parseBoolFilter(r *http.Request, name string) (*bool, error) {
+	value := r.URL.Query().Get(name)
+	if value == "" {
+		return nil, nil
+	}
+
+	parsed, err := strconv.ParseBool(value)
+	if err != nil {
+		return nil, fmt.Errorf("%s must be true or false", name)
+	}
+
+	return &parsed, nil
 }
 
 func writeStudentNotFound(w http.ResponseWriter) {

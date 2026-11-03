@@ -1,4 +1,3 @@
-import { ArrowLeft } from 'lucide-react'
 import {
   createBrowserRouter,
   createContext,
@@ -6,26 +5,18 @@ import {
   isRouteErrorResponse,
   Link,
   redirect,
-  useLoaderData,
   useRouteError,
   type LoaderFunctionArgs,
   type MiddlewareFunction,
 } from 'react-router'
 
-import {
-  api,
-  isApiErrorWithStatus,
-  queryClient,
-  streamLabels,
-  studentQuery,
-  type StudentOverview,
-  type User,
-} from '@/api/client'
+import { api, isApiErrorWithStatus, queryClient, studentQuery, type User } from '@/api/client'
 import { Layout, signedInRouteId } from '@/components/layout'
 import { Button, buttonVariants } from '@/components/ui/button'
-import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { LoginPage } from '@/pages/login'
 import { RegisterPage } from '@/pages/register'
+import { StudentPage } from '@/pages/student'
 import { StudentsPage } from '@/pages/students'
 
 const userContext = createContext<User>()
@@ -91,29 +82,6 @@ function RouteError() {
           Reload
         </Button>
       </CardFooter>
-    </Card>
-  )
-}
-
-// Replaced by the repository page with analysis tabs later.
-function StudentPage() {
-  const student = useLoaderData() as StudentOverview
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{student.fullName}</CardTitle>
-        <CardDescription>
-          {streamLabels[student.stream]}, supervisor {student.supervisorName}
-        </CardDescription>
-        <CardAction>
-          <Link to="/" className={buttonVariants({ variant: 'outline' })}>
-            <ArrowLeft />
-            Students
-          </Link>
-        </CardAction>
-      </CardHeader>
-      <CardContent>{student.repository.cloneUrl}</CardContent>
     </Card>
   )
 }

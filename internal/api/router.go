@@ -57,6 +57,8 @@ func NewRouter(pool *pgxpool.Pool, jobs *river.Client[pgx.Tx], reposDir string, 
 			signedIn.Delete("/students/{studentId}", s.deleteStudent)
 			signedIn.Get("/repos/{repoId}", s.getRepository)
 			signedIn.Post("/repos/{repoId}/analyze", s.analyzeRepository)
+			signedIn.Get("/repos/{repoId}/activity", s.getActivity)
+			signedIn.Get("/repos/{repoId}/commit-sizes", s.getCommitSizes)
 		})
 	})
 
