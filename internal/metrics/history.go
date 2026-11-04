@@ -28,11 +28,10 @@ type sizeBucketLimit struct {
 }
 
 var sizeBuckets = []sizeBucketLimit{
-	{label: "0", maxLines: 0},
-	{label: "1-10", maxLines: 10},
-	{label: "11-50", maxLines: 50},
-	{label: "51-200", maxLines: 200},
-	{label: "201-1000", maxLines: 1000},
+	{label: "0-10", maxLines: 10},
+	{label: "11-100", maxLines: 100},
+	{label: "101-300", maxLines: 300},
+	{label: "301-1000", maxLines: 1000},
 	{label: ">1000", maxLines: math.MaxInt},
 }
 

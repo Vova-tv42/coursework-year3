@@ -56,11 +56,10 @@ func TestCommitSizeBuckets(t *testing.T) {
 	sizes := analyzeFixture(t, "sizes").CommitSizes
 
 	require.Equal(t, []metrics.SizeBucket{
-		{Label: "0", Count: 0},
-		{Label: "1-10", Count: 20},
-		{Label: "11-50", Count: 0},
-		{Label: "51-200", Count: 20},
-		{Label: "201-1000", Count: 0},
+		{Label: "0-10", Count: 20},
+		{Label: "11-100", Count: 0},
+		{Label: "101-300", Count: 20},
+		{Label: "301-1000", Count: 0},
 		{Label: ">1000", Count: 1},
 	}, sizes.Buckets)
 	require.Equal(t, 41, sizes.NonMergeCommits)

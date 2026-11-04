@@ -61,7 +61,7 @@ func TestNeverAnalyzedRepositoryHasEmptyResults(t *testing.T) {
 	require.Equal(t, http.StatusOK, response.status, string(response.body))
 	sizes := decode[metrics.CommitSizeStats](t, response)
 	require.Zero(t, sizes.NonMergeCommits)
-	require.Len(t, sizes.Buckets, 6)
+	require.Len(t, sizes.Buckets, 5)
 	require.Contains(t, string(response.body), `"largeCommits":[]`)
 }
 

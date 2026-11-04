@@ -1,9 +1,8 @@
 import ReactEChartsCore from "echarts-for-react/esm/core";
-import { BarChart } from "echarts/charts";
+import { BarChart, LineChart } from "echarts/charts";
 import {
   DataZoomComponent,
   GridComponent,
-  LegendComponent,
   TooltipComponent,
 } from "echarts/components";
 import * as echarts from "echarts/core";
@@ -13,21 +12,24 @@ import { useTheme } from "@/components/theme-provider";
 
 echarts.use([
   BarChart,
+  LineChart,
   DataZoomComponent,
   GridComponent,
-  LegendComponent,
   TooltipComponent,
   CanvasRenderer,
 ]);
 
 export type ChartOption = echarts.EChartsCoreOption;
+export type ChartInstance = echarts.EChartsType;
 
 export function Chart({
   option,
   height = 320,
+  onChartReady,
 }: {
   option: ChartOption;
   height?: number;
+  onChartReady?: (chart: ChartInstance) => void;
 }) {
   const { theme } = useTheme();
 
@@ -37,6 +39,7 @@ export function Chart({
       option={{ backgroundColor: "transparent", ...option }}
       theme={theme === "dark" ? "dark" : undefined}
       notMerge
+      onChartReady={onChartReady}
       style={{ height }}
     />
   );

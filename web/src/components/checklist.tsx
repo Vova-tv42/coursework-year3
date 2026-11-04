@@ -27,6 +27,12 @@ const itemLabels: Record<ChecklistItemKey, string> = {
   readme_deployment: "README",
 };
 
+// Code and README matches are obvious, but a reviewer should see which document was accepted
+const itemsWithShownFiles: ChecklistItemKey[] = [
+  "explanatory_note",
+  "presentation",
+];
+
 export function AdmissionBadge({ admitted }: { admitted: boolean }) {
   return admitted ? (
     <Badge>Admitted</Badge>
@@ -61,8 +67,7 @@ export function Checklist({ repositoryId }: { repositoryId: number }) {
       <CardHeader>
         <CardTitle>Defense checklist</CardTitle>
         <CardDescription>
-          Checked on the latest state of the default branch. Up to 20 files are
-          shown per item.
+          Checked on the latest state of the default branch.
         </CardDescription>
         <CardAction>
           <AdmissionBadge admitted={checklist.data.admitted} />
@@ -74,31 +79,28 @@ export function Checklist({ repositoryId }: { repositoryId: number }) {
             <TableRow>
               <TableHead>Item</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Matched files</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {checklist.data.items.map((item) => (
               <TableRow key={item.key}>
-                <TableCell>{itemLabels[item.key]}</TableCell>
+                <TableCell className="whitespace-normal">
+                  <div>{itemLabels[item.key]}</div>
+                  {itemsWithShownFiles.includes(item.key) &&
+                    item.files.map((file) => (
+                      <div
+                        key={file}
+                        className="text-muted-foreground break-all"
+                      >
+                        {file}
+                      </div>
+                    ))}
+                </TableCell>
                 <TableCell>
                   {item.found ? (
                     <Badge variant="secondary">Found</Badge>
                   ) : (
                     <Badge variant="destructive">Missing</Badge>
-                  )}
-                </TableCell>
-                <TableCell className="whitespace-normal">
-                  {item.files.length > 0 ? (
-                    <ul>
-                      {item.files.map((file) => (
-                        <li key={file} className="break-all">
-                          {file}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    "-"
                   )}
                 </TableCell>
               </TableRow>
