@@ -1,55 +1,67 @@
-import { useMutation } from '@tanstack/react-query'
-import { LogOut, Moon, Sun } from 'lucide-react'
-import { NavLink, Outlet, useNavigate, useRouteLoaderData } from 'react-router'
-import { toast } from 'sonner'
+import { useMutation } from "@tanstack/react-query";
+import { LogOut, Moon, Sun } from "lucide-react";
+import { NavLink, Outlet, useNavigate, useRouteLoaderData } from "react-router";
+import { toast } from "sonner";
 
-import { api, queryClient, roleLabels, streamLabels, type User } from '@/api/client'
-import { useTheme } from '@/components/theme-provider'
-import { Badge } from '@/components/ui/badge'
-import { Button, buttonVariants } from '@/components/ui/button'
+import {
+  api,
+  queryClient,
+  roleLabels,
+  streamLabels,
+  type User,
+} from "@/api/client";
+import { useTheme } from "@/components/theme-provider";
+import { Badge } from "@/components/ui/badge";
+import { Button, buttonVariants } from "@/components/ui/button";
 
-export const signedInRouteId = 'signed-in'
+export const signedInRouteId = "signed-in";
 
 export function useCurrentUser() {
-  const user = useRouteLoaderData(signedInRouteId) as User | undefined
-  if (!user) throw new Error('useCurrentUser must be used inside the signed-in route')
-  return user
+  const user = useRouteLoaderData(signedInRouteId) as User | undefined;
+  if (!user)
+    throw new Error("useCurrentUser must be used inside the signed-in route");
+  return user;
 }
 
 function ThemeToggle() {
-  const { theme, setTheme } = useTheme()
-  const nextTheme = theme === 'dark' ? 'light' : 'dark'
+  const { theme, setTheme } = useTheme();
+  const nextTheme = theme === "dark" ? "light" : "dark";
 
   return (
-    <Button variant="outline" size="icon" title={`Switch to ${nextTheme} theme`} onClick={() => setTheme(nextTheme)}>
-      {theme === 'dark' ? <Sun /> : <Moon />}
+    <Button
+      variant="outline"
+      size="icon"
+      title={`Switch to ${nextTheme} theme`}
+      onClick={() => setTheme(nextTheme)}
+    >
+      {theme === "dark" ? <Sun /> : <Moon />}
       <span className="sr-only">Switch to {nextTheme} theme</span>
     </Button>
-  )
+  );
 }
 
 export function Layout() {
-  const user = useCurrentUser()
-  const navigate = useNavigate()
+  const user = useCurrentUser();
+  const navigate = useNavigate();
   const roleDescription = user.stream
     ? `${roleLabels[user.role]}, ${streamLabels[user.stream].toLowerCase()}`
-    : roleLabels[user.role]
+    : roleLabels[user.role];
 
   const signOut = useMutation({
     mutationFn: api.logout,
     onSuccess: async () => {
-      queryClient.clear()
-      await navigate('/login')
+      queryClient.clear();
+      await navigate("/login");
     },
     onError: (error) => toast.error(error.message),
-  })
+  });
 
   return (
     <>
       <header className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-3">
         <span className="mr-4 font-semibold">Commit Radar</span>
         <nav>
-          <NavLink to="/" end className={buttonVariants({ variant: 'ghost' })}>
+          <NavLink to="/" end className={buttonVariants({ variant: "ghost" })}>
             Students
           </NavLink>
         </nav>
@@ -75,5 +87,5 @@ export function Layout() {
         <Outlet />
       </main>
     </>
-  )
+  );
 }

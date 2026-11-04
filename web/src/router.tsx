@@ -8,44 +8,58 @@ import {
   useRouteError,
   type LoaderFunctionArgs,
   type MiddlewareFunction,
-} from 'react-router'
+} from "react-router";
 
-import { api, isApiErrorWithStatus, queryClient, studentQuery, type User } from '@/api/client'
-import { Layout, signedInRouteId } from '@/components/layout'
-import { Button, buttonVariants } from '@/components/ui/button'
-import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { LoginPage } from '@/pages/login'
-import { RegisterPage } from '@/pages/register'
-import { StudentPage } from '@/pages/student'
-import { StudentsPage } from '@/pages/students'
+import {
+  api,
+  isApiErrorWithStatus,
+  queryClient,
+  studentQuery,
+  type User,
+} from "@/api/client";
+import { Layout, signedInRouteId } from "@/components/layout";
+import { Button, buttonVariants } from "@/components/ui/button";
+import {
+  Card,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { LoginPage } from "@/pages/login";
+import { RegisterPage } from "@/pages/register";
+import { StudentPage } from "@/pages/student";
+import { StudentsPage } from "@/pages/students";
 
-const userContext = createContext<User>()
+const userContext = createContext<User>();
 
 const requireSignedInUser: MiddlewareFunction = async ({ context }) => {
   try {
-    context.set(userContext, await api.me())
+    context.set(userContext, await api.me());
   } catch (error) {
-    if (isApiErrorWithStatus(error, 401)) throw redirect('/login')
-    throw error
+    if (isApiErrorWithStatus(error, 401)) throw redirect("/login");
+    throw error;
   }
-}
+};
 
 async function redirectIfSignedIn() {
   try {
-    await api.me()
+    await api.me();
   } catch (error) {
-    if (isApiErrorWithStatus(error, 401)) return null
-    throw error
+    if (isApiErrorWithStatus(error, 401)) return null;
+    throw error;
   }
-  return redirect('/')
+  return redirect("/");
 }
 
 async function loadStudent({ params }: LoaderFunctionArgs) {
   try {
-    return await queryClient.ensureQueryData(studentQuery(params.studentId ?? ''))
+    return await queryClient.ensureQueryData(
+      studentQuery(params.studentId ?? ""),
+    );
   } catch (error) {
-    if (isApiErrorWithStatus(error, 404)) throw data(null, { status: 404 })
-    throw error
+    if (isApiErrorWithStatus(error, 404)) throw data(null, { status: 404 });
+    throw error;
   }
 }
 
@@ -54,7 +68,9 @@ function NotFoundPage() {
     <Card className="mx-auto max-w-sm">
       <CardHeader>
         <CardTitle>Page not found</CardTitle>
-        <CardDescription>This page does not exist or you have no access to it.</CardDescription>
+        <CardDescription>
+          This page does not exist or you have no access to it.
+        </CardDescription>
       </CardHeader>
       <CardFooter>
         <Link to="/" className={buttonVariants()}>
@@ -62,15 +78,15 @@ function NotFoundPage() {
         </Link>
       </CardFooter>
     </Card>
-  )
+  );
 }
 
 function RouteError() {
-  const error = useRouteError()
-  const isNotFound = isRouteErrorResponse(error) && error.status === 404
-  if (isNotFound) return <NotFoundPage />
+  const error = useRouteError();
+  const isNotFound = isRouteErrorResponse(error) && error.status === 404;
+  if (isNotFound) return <NotFoundPage />;
 
-  const message = error instanceof Error ? error.message : 'Unexpected error'
+  const message = error instanceof Error ? error.message : "Unexpected error";
   return (
     <Card className="mx-auto my-6 max-w-sm">
       <CardHeader>
@@ -83,18 +99,22 @@ function RouteError() {
         </Button>
       </CardFooter>
     </Card>
-  )
+  );
 }
 
 export const router = createBrowserRouter([
   {
     hydrateFallbackElement: <div className="min-h-svh" />,
     children: [
-      { path: '/login', loader: redirectIfSignedIn, element: <LoginPage /> },
-      { path: '/register', loader: redirectIfSignedIn, element: <RegisterPage /> },
+      { path: "/login", loader: redirectIfSignedIn, element: <LoginPage /> },
+      {
+        path: "/register",
+        loader: redirectIfSignedIn,
+        element: <RegisterPage />,
+      },
       {
         id: signedInRouteId,
-        path: '/',
+        path: "/",
         middleware: [requireSignedInUser],
         loader: ({ context }) => context.get(userContext),
         element: <Layout />,
@@ -102,14 +122,14 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <StudentsPage /> },
           {
-            path: 'students/:studentId',
+            path: "students/:studentId",
             loader: loadStudent,
             element: <StudentPage />,
             errorElement: <RouteError />,
           },
-          { path: '*', element: <NotFoundPage /> },
+          { path: "*", element: <NotFoundPage /> },
         ],
       },
     ],
   },
-])
+]);

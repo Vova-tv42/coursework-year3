@@ -109,10 +109,7 @@ export interface CommitSizes {
 }
 
 export type ChecklistItemKey =
-  | "code"
-  | "explanatory_note"
-  | "presentation"
-  | "readme_deployment";
+  "code" | "explanatory_note" | "presentation" | "readme_deployment";
 
 export interface ChecklistItem {
   key: ChecklistItemKey;
