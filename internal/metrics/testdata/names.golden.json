@@ -38,5 +38,59 @@
     "nonMergeCommits": 2,
     "largeCommits": []
   },
-  "rapidSeries": []
+  "rapidSeries": [],
+  "snapshot": [
+    {
+      "path": "src/file with spaces.js",
+      "sizeBytes": 28,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "src/say \"hello\".js",
+      "sizeBytes": 42,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "документи/звіт.md",
+      "sizeBytes": 39,
+      "isBinary": false,
+      "category": "docs",
+      "codeLines": 0,
+      "commentLines": 0
+    }
+  ],
+  "checklist": {
+    "admitted": false,
+    "items": [
+      {
+        "key": "code",
+        "found": true,
+        "files": [
+          "src/file with spaces.js",
+          "src/say \"hello\".js"
+        ]
+      },
+      {
+        "key": "explanatory_note",
+        "found": false,
+        "files": []
+      },
+      {
+        "key": "presentation",
+        "found": false,
+        "files": []
+      },
+      {
+        "key": "readme_deployment",
+        "found": false,
+        "files": []
+      }
+    ]
+  }
 }

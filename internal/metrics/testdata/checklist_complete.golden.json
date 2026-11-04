@@ -38,5 +38,80 @@
     "nonMergeCommits": 1,
     "largeCommits": []
   },
-  "rapidSeries": []
+  "rapidSeries": [],
+  "snapshot": [
+    {
+      "path": "README.md",
+      "sizeBytes": 98,
+      "isBinary": false,
+      "category": "docs",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "docs/plan.md",
+      "sizeBytes": 12,
+      "isBinary": false,
+      "category": "docs",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "docs/presentation.pptx",
+      "sizeBytes": 132,
+      "isBinary": true,
+      "category": "binary",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "docs/Пояснювальна записка.pdf",
+      "sizeBytes": 137,
+      "isBinary": true,
+      "category": "binary",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "src/main.go",
+      "sizeBytes": 49,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    }
+  ],
+  "checklist": {
+    "admitted": true,
+    "items": [
+      {
+        "key": "code",
+        "found": true,
+        "files": [
+          "src/main.go"
+        ]
+      },
+      {
+        "key": "explanatory_note",
+        "found": true,
+        "files": [
+          "docs/Пояснювальна записка.pdf"
+        ]
+      },
+      {
+        "key": "presentation",
+        "found": true,
+        "files": [
+          "docs/presentation.pptx"
+        ]
+      },
+      {
+        "key": "readme_deployment",
+        "found": true,
+        "files": [
+          "README.md"
+        ]
+      }
+    ]
+  }
 }

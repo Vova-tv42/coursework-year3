@@ -43,5 +43,51 @@
     "nonMergeCommits": 2,
     "largeCommits": []
   },
-  "rapidSeries": []
+  "rapidSeries": [],
+  "snapshot": [
+    {
+      "path": "src/evening.js",
+      "sizeBytes": 30,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "src/night.js",
+      "sizeBytes": 39,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    }
+  ],
+  "checklist": {
+    "admitted": false,
+    "items": [
+      {
+        "key": "code",
+        "found": true,
+        "files": [
+          "src/evening.js",
+          "src/night.js"
+        ]
+      },
+      {
+        "key": "explanatory_note",
+        "found": false,
+        "files": []
+      },
+      {
+        "key": "presentation",
+        "found": false,
+        "files": []
+      },
+      {
+        "key": "readme_deployment",
+        "found": false,
+        "files": []
+      }
+    ]
+  }
 }

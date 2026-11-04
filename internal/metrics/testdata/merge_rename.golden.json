@@ -38,5 +38,51 @@
     "nonMergeCommits": 3,
     "largeCommits": []
   },
-  "rapidSeries": []
+  "rapidSeries": [],
+  "snapshot": [
+    {
+      "path": "src/new_name.js",
+      "sizeBytes": 156,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "src/other.js",
+      "sizeBytes": 52,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    }
+  ],
+  "checklist": {
+    "admitted": false,
+    "items": [
+      {
+        "key": "code",
+        "found": true,
+        "files": [
+          "src/new_name.js",
+          "src/other.js"
+        ]
+      },
+      {
+        "key": "explanatory_note",
+        "found": false,
+        "files": []
+      },
+      {
+        "key": "presentation",
+        "found": false,
+        "files": []
+      },
+      {
+        "key": "readme_deployment",
+        "found": false,
+        "files": []
+      }
+    ]
+  }
 }

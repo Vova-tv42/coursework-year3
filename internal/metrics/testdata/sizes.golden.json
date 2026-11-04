@@ -74,5 +74,381 @@
       }
     ]
   },
-  "rapidSeries": []
+  "rapidSeries": [],
+  "snapshot": [
+    {
+      "path": "src/feature_01.js",
+      "sizeBytes": 3292,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "src/feature_02.js",
+      "sizeBytes": 3292,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "src/feature_03.js",
+      "sizeBytes": 3292,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "src/feature_04.js",
+      "sizeBytes": 3292,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "src/feature_05.js",
+      "sizeBytes": 3292,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "src/feature_06.js",
+      "sizeBytes": 3292,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "src/feature_07.js",
+      "sizeBytes": 3292,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "src/feature_08.js",
+      "sizeBytes": 3292,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "src/feature_09.js",
+      "sizeBytes": 3292,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "src/feature_10.js",
+      "sizeBytes": 3292,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "src/feature_11.js",
+      "sizeBytes": 3292,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "src/feature_12.js",
+      "sizeBytes": 3292,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "src/feature_13.js",
+      "sizeBytes": 3292,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "src/feature_14.js",
+      "sizeBytes": 3292,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "src/feature_15.js",
+      "sizeBytes": 3292,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "src/feature_16.js",
+      "sizeBytes": 3292,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "src/feature_17.js",
+      "sizeBytes": 3292,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "src/feature_18.js",
+      "sizeBytes": 3292,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "src/feature_19.js",
+      "sizeBytes": 3292,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "src/feature_20.js",
+      "sizeBytes": 3292,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "src/generated_data.js",
+      "sizeBytes": 21393,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "src/small_01.js",
+      "sizeBytes": 39,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "src/small_02.js",
+      "sizeBytes": 39,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "src/small_03.js",
+      "sizeBytes": 39,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "src/small_04.js",
+      "sizeBytes": 39,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "src/small_05.js",
+      "sizeBytes": 39,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "src/small_06.js",
+      "sizeBytes": 39,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "src/small_07.js",
+      "sizeBytes": 39,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "src/small_08.js",
+      "sizeBytes": 39,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "src/small_09.js",
+      "sizeBytes": 39,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "src/small_10.js",
+      "sizeBytes": 39,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "src/small_11.js",
+      "sizeBytes": 39,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "src/small_12.js",
+      "sizeBytes": 39,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "src/small_13.js",
+      "sizeBytes": 39,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "src/small_14.js",
+      "sizeBytes": 39,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "src/small_15.js",
+      "sizeBytes": 39,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "src/small_16.js",
+      "sizeBytes": 39,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "src/small_17.js",
+      "sizeBytes": 39,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "src/small_18.js",
+      "sizeBytes": 39,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "src/small_19.js",
+      "sizeBytes": 39,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "src/small_20.js",
+      "sizeBytes": 39,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    }
+  ],
+  "checklist": {
+    "admitted": false,
+    "items": [
+      {
+        "key": "code",
+        "found": true,
+        "files": [
+          "src/feature_01.js",
+          "src/feature_02.js",
+          "src/feature_03.js",
+          "src/feature_04.js",
+          "src/feature_05.js",
+          "src/feature_06.js",
+          "src/feature_07.js",
+          "src/feature_08.js",
+          "src/feature_09.js",
+          "src/feature_10.js",
+          "src/feature_11.js",
+          "src/feature_12.js",
+          "src/feature_13.js",
+          "src/feature_14.js",
+          "src/feature_15.js",
+          "src/feature_16.js",
+          "src/feature_17.js",
+          "src/feature_18.js",
+          "src/feature_19.js",
+          "src/feature_20.js"
+        ]
+      },
+      {
+        "key": "explanatory_note",
+        "found": false,
+        "files": []
+      },
+      {
+        "key": "presentation",
+        "found": false,
+        "files": []
+      },
+      {
+        "key": "readme_deployment",
+        "found": false,
+        "files": []
+      }
+    ]
+  }
 }

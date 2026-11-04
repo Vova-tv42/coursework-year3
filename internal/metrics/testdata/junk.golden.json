@@ -38,5 +38,82 @@
     "nonMergeCommits": 3,
     "largeCommits": []
   },
-  "rapidSeries": []
+  "rapidSeries": [],
+  "snapshot": [
+    {
+      "path": "README.md",
+      "sizeBytes": 15,
+      "isBinary": false,
+      "category": "docs",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "assets/logo.png",
+      "sizeBytes": 136,
+      "isBinary": true,
+      "category": "binary",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "node_modules/left-pad/index.js",
+      "sizeBytes": 671,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "node_modules/left-pad/package.json",
+      "sizeBytes": 25,
+      "isBinary": false,
+      "category": "config",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "src/app.js",
+      "sizeBytes": 111,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    },
+    {
+      "path": "vendor/github.com/pkg/errors/errors.go",
+      "sizeBytes": 441,
+      "isBinary": false,
+      "category": "code",
+      "codeLines": 0,
+      "commentLines": 0
+    }
+  ],
+  "checklist": {
+    "admitted": false,
+    "items": [
+      {
+        "key": "code",
+        "found": true,
+        "files": [
+          "src/app.js"
+        ]
+      },
+      {
+        "key": "explanatory_note",
+        "found": false,
+        "files": []
+      },
+      {
+        "key": "presentation",
+        "found": false,
+        "files": []
+      },
+      {
+        "key": "readme_deployment",
+        "found": false,
+        "files": []
+      }
+    ]
+  }
 }

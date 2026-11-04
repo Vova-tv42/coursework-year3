@@ -23,6 +23,7 @@ import {
   type StudentInput,
   type StudentOverview,
 } from '@/api/client'
+import { AdmissionBadge } from '@/components/checklist'
 import { useCurrentUser } from '@/components/layout'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
@@ -64,6 +65,11 @@ const rapidSeriesFilterItems = [
   { value: true, label: 'With rapid series' },
   { value: false, label: 'Without rapid series' },
 ]
+const admittedFilterItems = [
+  { value: null, label: 'Any checklist status' },
+  { value: true, label: 'Admitted' },
+  { value: false, label: 'Not admitted' },
+]
 
 const lastCommitFormat = new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeZone: 'Europe/Kyiv' })
 
@@ -102,6 +108,15 @@ function createColumns(onEdit: (student: StudentOverview) => void, onDelete: (st
       id: 'status',
       header: 'Analysis',
       cell: (info) => <Badge variant={statusBadgeVariants[info.getValue()]}>{statusLabels[info.getValue()]}</Badge>,
+    }),
+    columnHelper.accessor((student) => student.flags.admitted ?? undefined, {
+      id: 'admitted',
+      header: 'Checklist',
+      sortUndefined: 'last',
+      cell: (info) => {
+        const admitted = info.getValue()
+        return admitted === undefined ? '-' : <AdmissionBadge admitted={admitted} />
+      },
     }),
     columnHelper.accessor((student) => student.flags.rapidSeries, {
       id: 'rapidSeries',
@@ -265,12 +280,13 @@ export function StudentsPage() {
   const canAddStudents = user.role === 'supervisor'
   const [streamFilter, setStreamFilter] = useState<Stream | null>(null)
   const [rapidSeriesFilter, setRapidSeriesFilter] = useState<boolean | null>(null)
+  const [admittedFilter, setAdmittedFilter] = useState<boolean | null>(null)
   const [formStudent, setFormStudent] = useState<StudentOverview | null>(null)
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [deletingStudent, setDeletingStudent] = useState<StudentOverview | null>(null)
 
   const students = useQuery({
-    ...studentsQuery({ stream: streamFilter, rapidSeries: rapidSeriesFilter }),
+    ...studentsQuery({ stream: streamFilter, rapidSeries: rapidSeriesFilter, admitted: admittedFilter }),
     placeholderData: keepPreviousData,
   })
 
@@ -292,7 +308,7 @@ export function StudentsPage() {
     setIsFormOpen(true)
   }
 
-  const isFiltered = streamFilter !== null || rapidSeriesFilter !== null
+  const isFiltered = streamFilter !== null || rapidSeriesFilter !== null || admittedFilter !== null
   const emptyMessage = isFiltered
     ? 'No students match the filters.'
     : canAddStudents
@@ -304,6 +320,20 @@ export function StudentsPage() {
       <CardHeader>
         <CardTitle>Students</CardTitle>
         <CardAction className="flex gap-2">
+          <Select items={admittedFilterItems} value={admittedFilter} onValueChange={(value) => setAdmittedFilter(value)}>
+            <SelectTrigger aria-label="Checklist filter">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent alignItemWithTrigger={false}>
+              <SelectGroup>
+                {admittedFilterItems.map((item) => (
+                  <SelectItem key={item.label} value={item.value}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
           <Select
             items={rapidSeriesFilterItems}
             value={rapidSeriesFilter}

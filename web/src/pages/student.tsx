@@ -17,6 +17,7 @@ import {
   type Repository,
 } from '@/api/client'
 import { ActivityChart } from '@/components/activity-chart'
+import { Checklist } from '@/components/checklist'
 import { CommitSizes } from '@/components/commit-sizes'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -97,12 +98,16 @@ function AnalysisResults({ repository }: { repository: Repository }) {
       <TabsList>
         <TabsTrigger value="activity">Activity</TabsTrigger>
         <TabsTrigger value="commit-sizes">Commit sizes</TabsTrigger>
+        <TabsTrigger value="checklist">Checklist</TabsTrigger>
       </TabsList>
       <TabsContent value="activity">
         <ActivityChart repositoryId={repository.id} />
       </TabsContent>
       <TabsContent value="commit-sizes">
         <CommitSizes repositoryId={repository.id} />
+      </TabsContent>
+      <TabsContent value="checklist">
+        <Checklist repositoryId={repository.id} />
       </TabsContent>
     </Tabs>
   )

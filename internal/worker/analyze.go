@@ -93,6 +93,7 @@ type analysisResult struct {
 	replaceHistory bool
 	newCommits     []git.Commit
 	commitOrder    []string
+	snapshot       metrics.Snapshot
 }
 
 func NewClient(pool *pgxpool.Pool, cfg Config) (*river.Client[pgx.Tx], error) {
@@ -255,6 +256,9 @@ func (w *AnalyzeWorker) analyzeAndSave(ctx context.Context, target analysisTarge
 	}
 
 	result.cloneSizeBytes = cloneSizeBytes
+	if result.snapshot, err = metrics.ReadSnapshot(ctx, w.runner, target.cloneDir); err != nil {
+		return fmt.Errorf("read snapshot failed: %w", err)
+	}
 
 	return w.save(ctx, target, hosting, result)
 }
@@ -359,6 +363,10 @@ func (w *AnalyzeWorker) save(ctx context.Context, target analysisTarget, hosting
 			return err
 		}
 
+		if err := replaceSnapshot(ctx, tx, target.repositoryID, result.snapshot.Files); err != nil {
+			return err
+		}
+
 		var headSHA *string
 		if result.headSHA != "" {
 			headSHA = &result.headSHA
@@ -368,9 +376,10 @@ func (w *AnalyzeWorker) save(ctx context.Context, target analysisTarget, hosting
 			UPDATE repositories
 			SET status = 'done', status_reason = NULL, analysis_finished_at = now(),
 				default_branch = $2, hosting_metadata = $3, last_analyzed_head = $4, clone_size_bytes = $5,
-				last_commit_at = (SELECT max(authored_at) FROM commits WHERE repository_id = $1)
+				checklist = $6, last_commit_at = (SELECT max(authored_at) FROM commits WHERE repository_id = $1)
 			WHERE id = $1`,
-			target.repositoryID, result.defaultBranch, hosting, headSHA, result.cloneSizeBytes)
+			target.repositoryID, result.defaultBranch, hosting, headSHA, result.cloneSizeBytes,
+			metrics.EvaluateChecklist(result.snapshot))
 
 		return err
 	})
@@ -464,4 +473,21 @@ func replaceRapidSeries(ctx context.Context, tx pgx.Tx, repositoryID int64, comm
 	}
 
 	return tx.SendBatch(ctx, batch).Close()
+}
+
+func replaceSnapshot(ctx context.Context, tx pgx.Tx, repositoryID int64, files []metrics.SnapshotFile) error {
+	if _, err := tx.Exec(ctx, "DELETE FROM snapshot_files WHERE repository_id = $1", repositoryID); err != nil {
+		return err
+	}
+
+	_, err := tx.CopyFrom(ctx,
+		pgx.Identifier{"snapshot_files"},
+		[]string{"repository_id", "path", "size_bytes", "is_binary", "category", "code_lines", "comment_lines"},
+		pgx.CopyFromSlice(len(files), func(i int) ([]any, error) {
+			file := files[i]
+			return []any{repositoryID, file.Path, file.SizeBytes, file.IsBinary, file.Category,
+				file.CodeLines, file.CommentLines}, nil
+		}))
+
+	return err
 }

@@ -77,6 +77,8 @@ type Report struct {
 	Activity    []DayActivity       `json:"activity"`
 	CommitSizes CommitSizeStats     `json:"commitSizes"`
 	RapidSeries []RapidCommitSeries `json:"rapidSeries"`
+	Snapshot    []SnapshotFile      `json:"snapshot"`
+	Checklist   Checklist           `json:"checklist"`
 }
 
 func AnalyzeRepository(ctx context.Context, runner git.Runner, dir string) (Report, error) {
@@ -84,10 +86,18 @@ func AnalyzeRepository(ctx context.Context, runner git.Runner, dir string) (Repo
 	if err != nil {
 		return Report{}, err
 	}
+
+	snapshot, err := ReadSnapshot(ctx, runner, dir)
+	if err != nil {
+		return Report{}, err
+	}
+
 	return Report{
 		Activity:    DailyActivity(commits),
 		CommitSizes: CommitSizes(commits),
 		RapidSeries: RapidSeries(commits),
+		Snapshot:    snapshot.Files,
+		Checklist:   EvaluateChecklist(snapshot),
 	}, nil
 }
 

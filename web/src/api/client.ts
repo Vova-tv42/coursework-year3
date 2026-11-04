@@ -51,6 +51,7 @@ export interface Repository {
 }
 
 export interface StudentFlags {
+  admitted: boolean | null;
   rapidSeries: boolean;
 }
 
@@ -67,6 +68,7 @@ export interface StudentOverview {
 export interface StudentFilters {
   stream: Stream | null;
   rapidSeries: boolean | null;
+  admitted: boolean | null;
 }
 
 export interface CommitSummary {
@@ -104,6 +106,24 @@ export interface CommitSizes {
   median: number;
   nonMergeCommits: number;
   largeCommits: CommitSummary[];
+}
+
+export type ChecklistItemKey =
+  | "code"
+  | "explanatory_note"
+  | "presentation"
+  | "readme_deployment";
+
+export interface ChecklistItem {
+  key: ChecklistItemKey;
+  found: boolean;
+  files: string[];
+}
+
+export interface Checklist {
+  evaluated: boolean;
+  admitted: boolean;
+  items: ChecklistItem[];
 }
 
 interface ErrorResponse {
@@ -145,10 +165,11 @@ export function isAnalysisInProgress(status: AnalysisStatus) {
   return status === "queued" || status === "running";
 }
 
-function studentsPath({ stream, rapidSeries }: StudentFilters) {
+function studentsPath({ stream, rapidSeries, admitted }: StudentFilters) {
   const params = new URLSearchParams();
   if (stream) params.set("stream", stream);
   if (rapidSeries !== null) params.set("rapidSeries", String(rapidSeries));
+  if (admitted !== null) params.set("admitted", String(admitted));
 
   const query = params.toString();
   return query ? `/students?${query}` : "/students";
@@ -222,6 +243,8 @@ export const api = {
     request<Activity>("GET", `/repos/${repositoryId}/activity`),
   getCommitSizes: (repositoryId: number) =>
     request<CommitSizes>("GET", `/repos/${repositoryId}/commit-sizes`),
+  getChecklist: (repositoryId: number) =>
+    request<Checklist>("GET", `/repos/${repositoryId}/checklist`),
 };
 
 export function isApiErrorWithStatus(error: unknown, status: number) {
@@ -275,4 +298,10 @@ export const commitSizesQuery = (repositoryId: number) =>
   queryOptions({
     queryKey: [...analysisResultsKey(repositoryId), "commit-sizes"],
     queryFn: () => api.getCommitSizes(repositoryId),
+  });
+
+export const checklistQuery = (repositoryId: number) =>
+  queryOptions({
+    queryKey: [...analysisResultsKey(repositoryId), "checklist"],
+    queryFn: () => api.getChecklist(repositoryId),
   });

@@ -23,12 +23,15 @@ const maxFullNameLength = 200
 
 const hasRapidSeriesCondition = "EXISTS (SELECT 1 FROM rapid_series rs WHERE rs.repository_id = r.id)"
 
+// NULL until the first successful analysis stores the checklist
+const admittedExpression = "(r.checklist->>'admitted')::boolean"
+
 // $1 = viewer role, $2 = viewer id, $3 = viewer stream (NULL unless coordinator).
 const visibleStudentsQuery = `
 	SELECT s.id, s.full_name, s.stream, s.supervisor_id, supervisor.display_name,
 		r.id, r.clone_url, r.default_branch, r.status, r.status_reason,
 		r.analysis_started_at, r.analysis_finished_at, r.last_commit_at, r.hosting_metadata,
-		` + hasRapidSeriesCondition + `
+		` + hasRapidSeriesCondition + `, ` + admittedExpression + `
 	FROM students s
 	JOIN users supervisor ON supervisor.id = s.supervisor_id
 	JOIN repositories r ON r.student_id = s.id
@@ -58,7 +61,8 @@ type studentOverview struct {
 }
 
 type studentFlags struct {
-	RapidSeries bool `json:"rapidSeries"`
+	Admitted    *bool `json:"admitted"`
+	RapidSeries bool  `json:"rapidSeries"`
 }
 
 type repository struct {
@@ -87,11 +91,18 @@ func (s *server) listStudents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	admittedFilter, err := parseBoolFilter(r, "admitted")
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_input", err.Error())
+		return
+	}
+
 	rows, err := s.pool.Query(r.Context(), visibleStudentsQuery+`
 		AND ($4::text IS NULL OR s.stream::text = $4)
 		AND ($5::boolean IS NULL OR `+hasRapidSeriesCondition+` = $5)
+		AND ($6::boolean IS NULL OR `+admittedExpression+` = $6)
 		ORDER BY s.full_name, s.id`,
-		viewer.Role, viewer.ID, viewer.Stream, streamFilter, rapidSeriesFilter)
+		viewer.Role, viewer.ID, viewer.Stream, streamFilter, rapidSeriesFilter, admittedFilter)
 
 	if err != nil {
 		writeInternalError(w, r, err)
@@ -294,7 +305,7 @@ func scanStudent(row pgx.Row, viewer user) (studentOverview, error) {
 	err := row.Scan(&student.ID, &student.FullName, &student.Stream, &supervisorID, &student.SupervisorName,
 		&repo.ID, &repo.CloneURL, &repo.DefaultBranch, &repo.Status, &repo.StatusReason,
 		&repo.AnalysisStartedAt, &repo.AnalysisFinishedAt, &repo.LastCommitAt, &repo.Hosting,
-		&student.Flags.RapidSeries)
+		&student.Flags.RapidSeries, &student.Flags.Admitted)
 
 	repo.StudentID = student.ID
 	student.CanEdit = supervisorID == viewer.ID

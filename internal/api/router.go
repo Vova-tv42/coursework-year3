@@ -59,6 +59,7 @@ func NewRouter(pool *pgxpool.Pool, jobs *river.Client[pgx.Tx], reposDir string, 
 			signedIn.Post("/repos/{repoId}/analyze", s.analyzeRepository)
 			signedIn.Get("/repos/{repoId}/activity", s.getActivity)
 			signedIn.Get("/repos/{repoId}/commit-sizes", s.getCommitSizes)
+			signedIn.Get("/repos/{repoId}/checklist", s.getChecklist)
 		})
 	})
 
