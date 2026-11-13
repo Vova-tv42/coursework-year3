@@ -78,6 +78,7 @@ type Report struct {
 	RapidSeries []RapidCommitSeries `json:"rapidSeries"`
 	Snapshot    []SnapshotFile      `json:"snapshot"`
 	Checklist   Checklist           `json:"checklist"`
+	CodeStats   CodeStatistics      `json:"codeStats"`
 }
 
 func AnalyzeRepository(ctx context.Context, runner git.Runner, dir string) (Report, error) {
@@ -97,6 +98,7 @@ func AnalyzeRepository(ctx context.Context, runner git.Runner, dir string) (Repo
 		RapidSeries: RapidSeries(commits),
 		Snapshot:    snapshot.Files,
 		Checklist:   EvaluateChecklist(snapshot),
+		CodeStats:   CodeStats(snapshot.Files, DefaultJunkPatterns),
 	}, nil
 }
 

@@ -41,7 +41,7 @@
       "sizeBytes": 15,
       "isBinary": false,
       "category": "docs",
-      "codeLines": 0,
+      "codeLines": 1,
       "commentLines": 0
     },
     {
@@ -57,7 +57,7 @@
       "sizeBytes": 671,
       "isBinary": false,
       "category": "code",
-      "codeLines": 0,
+      "codeLines": 40,
       "commentLines": 0
     },
     {
@@ -65,7 +65,7 @@
       "sizeBytes": 25,
       "isBinary": false,
       "category": "config",
-      "codeLines": 0,
+      "codeLines": 3,
       "commentLines": 0
     },
     {
@@ -73,7 +73,7 @@
       "sizeBytes": 111,
       "isBinary": false,
       "category": "code",
-      "codeLines": 0,
+      "codeLines": 10,
       "commentLines": 0
     },
     {
@@ -81,7 +81,7 @@
       "sizeBytes": 441,
       "isBinary": false,
       "category": "code",
-      "codeLines": 0,
+      "codeLines": 30,
       "commentLines": 0
     }
   ],
@@ -111,5 +111,26 @@
         "files": []
       }
     ]
+  },
+  "codeStats": {
+    "lines": {
+      "code": 10,
+      "comments": 0,
+      "docs": 1,
+      "tests": 0,
+      "config": 0,
+      "total": 11
+    },
+    "junk": {
+      "files": 4,
+      "bytes": 1273,
+      "lines": 73,
+      "samplePaths": [
+        "assets/logo.png",
+        "node_modules/left-pad/index.js",
+        "node_modules/left-pad/package.json",
+        "vendor/github.com/pkg/errors/errors.go"
+      ]
+    }
   }
 }

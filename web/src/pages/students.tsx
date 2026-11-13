@@ -32,7 +32,7 @@ import {
   type StudentOverview,
 } from "@/api/client";
 import { AdmissionBadge } from "@/components/checklist";
-import { useCurrentUser } from "@/components/layout";
+import { useCurrentUser } from "@/lib/hooks";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,

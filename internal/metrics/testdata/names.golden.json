@@ -41,7 +41,7 @@
       "sizeBytes": 28,
       "isBinary": false,
       "category": "code",
-      "codeLines": 0,
+      "codeLines": 2,
       "commentLines": 0
     },
     {
@@ -49,7 +49,7 @@
       "sizeBytes": 42,
       "isBinary": false,
       "category": "code",
-      "codeLines": 0,
+      "codeLines": 3,
       "commentLines": 0
     },
     {
@@ -57,7 +57,7 @@
       "sizeBytes": 39,
       "isBinary": false,
       "category": "docs",
-      "codeLines": 0,
+      "codeLines": 2,
       "commentLines": 0
     }
   ],
@@ -88,5 +88,21 @@
         "files": []
       }
     ]
+  },
+  "codeStats": {
+    "lines": {
+      "code": 5,
+      "comments": 0,
+      "docs": 2,
+      "tests": 0,
+      "config": 0,
+      "total": 7
+    },
+    "junk": {
+      "files": 0,
+      "bytes": 0,
+      "lines": 0,
+      "samplePaths": []
+    }
   }
 }

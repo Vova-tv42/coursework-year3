@@ -41,7 +41,7 @@
       "sizeBytes": 12,
       "isBinary": false,
       "category": "docs",
-      "codeLines": 0,
+      "codeLines": 1,
       "commentLines": 0
     },
     {
@@ -65,7 +65,7 @@
       "sizeBytes": 49,
       "isBinary": false,
       "category": "code",
-      "codeLines": 0,
+      "codeLines": 4,
       "commentLines": 0
     }
   ],
@@ -99,5 +99,24 @@
         "files": []
       }
     ]
+  },
+  "codeStats": {
+    "lines": {
+      "code": 4,
+      "comments": 0,
+      "docs": 1,
+      "tests": 0,
+      "config": 0,
+      "total": 5
+    },
+    "junk": {
+      "files": 2,
+      "bytes": 269,
+      "lines": 0,
+      "samplePaths": [
+        "docs/presentation.pptx",
+        "docs/Пояснювальна записка.pdf"
+      ]
+    }
   }
 }

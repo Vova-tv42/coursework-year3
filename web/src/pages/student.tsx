@@ -18,6 +18,7 @@ import {
 } from "@/api/client";
 import { ActivityChart } from "@/components/activity-chart";
 import { Checklist } from "@/components/checklist";
+import { CodeStats } from "@/components/code-stats";
 import { CommitSizes } from "@/components/commit-sizes";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -114,6 +115,7 @@ function AnalysisResults({ repository }: { repository: Repository }) {
         <TabsTrigger value="activity">Activity</TabsTrigger>
         <TabsTrigger value="commit-sizes">Commit sizes</TabsTrigger>
         <TabsTrigger value="checklist">Checklist</TabsTrigger>
+        <TabsTrigger value="code-stats">Code statistics</TabsTrigger>
       </TabsList>
       <TabsContent value="activity">
         <ActivityChart repositoryId={repository.id} />
@@ -123,6 +125,9 @@ function AnalysisResults({ repository }: { repository: Repository }) {
       </TabsContent>
       <TabsContent value="checklist">
         <Checklist repositoryId={repository.id} />
+      </TabsContent>
+      <TabsContent value="code-stats">
+        <CodeStats repositoryId={repository.id} />
       </TabsContent>
     </Tabs>
   );

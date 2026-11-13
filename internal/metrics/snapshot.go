@@ -60,11 +60,18 @@ func ReadSnapshot(ctx context.Context, runner git.Runner, dir string) (Snapshot,
 		}
 
 		isBinary := git.IsBinaryContent(content)
+		lines := LineCount{}
+		if !isBinary {
+			lines = CountLines(treeFile.Path, content)
+		}
+
 		snapshot.Files = append(snapshot.Files, SnapshotFile{
-			Path:      treeFile.Path,
-			SizeBytes: treeFile.SizeBytes,
-			IsBinary:  isBinary,
-			Category:  Categorize(treeFile.Path, isBinary),
+			Path:         treeFile.Path,
+			SizeBytes:    treeFile.SizeBytes,
+			IsBinary:     isBinary,
+			Category:     Categorize(treeFile.Path, isBinary),
+			CodeLines:    lines.Code,
+			CommentLines: lines.Comments,
 		})
 
 		if isRootReadme(treeFile.Path) && !isBinary {

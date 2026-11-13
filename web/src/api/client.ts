@@ -123,6 +123,30 @@ export interface Checklist {
   items: ChecklistItem[];
 }
 
+export interface LineCounts {
+  code: number;
+  comments: number;
+  docs: number;
+  tests: number;
+  config: number;
+  total: number;
+}
+
+export interface CodeStats {
+  lines: LineCounts;
+  junk: {
+    files: number;
+    bytes: number;
+    lines: number;
+    samplePaths: string[];
+  };
+}
+
+export interface JunkPatterns {
+  patterns: string[];
+  isDefault: boolean;
+}
+
 interface ErrorResponse {
   code: string;
   message: string;
@@ -242,6 +266,13 @@ export const api = {
     request<CommitSizes>("GET", `/repos/${repositoryId}/commit-sizes`),
   getChecklist: (repositoryId: number) =>
     request<Checklist>("GET", `/repos/${repositoryId}/checklist`),
+  getCodeStats: (repositoryId: number) =>
+    request<CodeStats>("GET", `/repos/${repositoryId}/code-stats`),
+
+  getJunkPatterns: () => request<JunkPatterns>("GET", "/me/junk-patterns"),
+  setJunkPatterns: (patterns: string[]) =>
+    request<JunkPatterns>("PUT", "/me/junk-patterns", { patterns }),
+  resetJunkPatterns: () => request<JunkPatterns>("DELETE", "/me/junk-patterns"),
 };
 
 export function isApiErrorWithStatus(error: unknown, status: number) {
@@ -302,3 +333,14 @@ export const checklistQuery = (repositoryId: number) =>
     queryKey: [...analysisResultsKey(repositoryId), "checklist"],
     queryFn: () => api.getChecklist(repositoryId),
   });
+
+export const codeStatsQuery = (repositoryId: number) =>
+  queryOptions({
+    queryKey: [...analysisResultsKey(repositoryId), "code-stats"],
+    queryFn: () => api.getCodeStats(repositoryId),
+  });
+
+export const junkPatternsQuery = queryOptions({
+  queryKey: ["junk-patterns"],
+  queryFn: api.getJunkPatterns,
+});

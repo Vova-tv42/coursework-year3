@@ -2,10 +2,7 @@ import {
   createBrowserRouter,
   createContext,
   data,
-  isRouteErrorResponse,
-  Link,
   redirect,
-  useRouteError,
   type LoaderFunctionArgs,
   type MiddlewareFunction,
 } from "react-router";
@@ -17,17 +14,12 @@ import {
   studentQuery,
   type User,
 } from "@/api/client";
-import { Layout, signedInRouteId } from "@/components/layout";
-import { Button, buttonVariants } from "@/components/ui/button";
-import {
-  Card,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Layout } from "@/components/layout";
+import { signedInRouteId } from "@/lib/hooks";
+import { NotFoundPage, RouteError } from "@/pages/errors";
 import { LoginPage } from "@/pages/login";
 import { RegisterPage } from "@/pages/register";
+import { SettingsPage } from "@/pages/settings";
 import { StudentPage } from "@/pages/student";
 import { StudentsPage } from "@/pages/students";
 
@@ -63,45 +55,6 @@ async function loadStudent({ params }: LoaderFunctionArgs) {
   }
 }
 
-function NotFoundPage() {
-  return (
-    <Card className="mx-auto max-w-sm">
-      <CardHeader>
-        <CardTitle>Page not found</CardTitle>
-        <CardDescription>
-          This page does not exist or you have no access to it.
-        </CardDescription>
-      </CardHeader>
-      <CardFooter>
-        <Link to="/" className={buttonVariants()}>
-          Back to students
-        </Link>
-      </CardFooter>
-    </Card>
-  );
-}
-
-function RouteError() {
-  const error = useRouteError();
-  const isNotFound = isRouteErrorResponse(error) && error.status === 404;
-  if (isNotFound) return <NotFoundPage />;
-
-  const message = error instanceof Error ? error.message : "Unexpected error";
-  return (
-    <Card className="mx-auto my-6 max-w-sm">
-      <CardHeader>
-        <CardTitle>Something went wrong</CardTitle>
-        <CardDescription>{message}</CardDescription>
-      </CardHeader>
-      <CardFooter>
-        <Button variant="outline" onClick={() => window.location.reload()}>
-          Reload
-        </Button>
-      </CardFooter>
-    </Card>
-  );
-}
-
 export const router = createBrowserRouter([
   {
     hydrateFallbackElement: <div className="min-h-svh" />,
@@ -127,6 +80,7 @@ export const router = createBrowserRouter([
             element: <StudentPage />,
             errorElement: <RouteError />,
           },
+          { path: "settings", element: <SettingsPage /> },
           { path: "*", element: <NotFoundPage /> },
         ],
       },

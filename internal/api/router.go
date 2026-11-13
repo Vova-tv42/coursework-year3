@@ -50,6 +50,9 @@ func NewRouter(pool *pgxpool.Pool, jobs *river.Client[pgx.Tx], reposDir string, 
 			signedIn.Use(s.requireSession)
 			signedIn.Post("/auth/logout", s.logout)
 			signedIn.Get("/auth/me", s.getMe)
+			signedIn.Get("/me/junk-patterns", s.getJunkPatterns)
+			signedIn.Put("/me/junk-patterns", s.setJunkPatterns)
+			signedIn.Delete("/me/junk-patterns", s.resetJunkPatterns)
 			signedIn.Get("/students", s.listStudents)
 			signedIn.Post("/students", s.createStudent)
 			signedIn.Get("/students/{studentId}", s.getStudent)
@@ -60,6 +63,7 @@ func NewRouter(pool *pgxpool.Pool, jobs *river.Client[pgx.Tx], reposDir string, 
 			signedIn.Get("/repos/{repoId}/activity", s.getActivity)
 			signedIn.Get("/repos/{repoId}/commit-sizes", s.getCommitSizes)
 			signedIn.Get("/repos/{repoId}/checklist", s.getChecklist)
+			signedIn.Get("/repos/{repoId}/code-stats", s.getCodeStats)
 		})
 	})
 

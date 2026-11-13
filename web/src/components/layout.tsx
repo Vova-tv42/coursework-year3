@@ -1,27 +1,12 @@
 import { useMutation } from "@tanstack/react-query";
 import { LogOut, Moon, Sun } from "lucide-react";
-import { NavLink, Outlet, useNavigate, useRouteLoaderData } from "react-router";
+import { NavLink, Outlet, useNavigate } from "react-router";
 import { toast } from "sonner";
 
-import {
-  api,
-  queryClient,
-  roleLabels,
-  streamLabels,
-  type User,
-} from "@/api/client";
-import { useTheme } from "@/components/theme-provider";
+import { api, queryClient, roleLabels, streamLabels } from "@/api/client";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
-
-export const signedInRouteId = "signed-in";
-
-export function useCurrentUser() {
-  const user = useRouteLoaderData(signedInRouteId) as User | undefined;
-  if (!user)
-    throw new Error("useCurrentUser must be used inside the signed-in route");
-  return user;
-}
+import { useCurrentUser, useTheme } from "@/lib/hooks";
 
 function ThemeToggle() {
   const { theme, setTheme } = useTheme();
@@ -63,6 +48,12 @@ export function Layout() {
         <nav>
           <NavLink to="/" end className={buttonVariants({ variant: "ghost" })}>
             Students
+          </NavLink>
+          <NavLink
+            to="/settings"
+            className={buttonVariants({ variant: "ghost" })}
+          >
+            Settings
           </NavLink>
         </nav>
         <div className="ml-auto flex items-center gap-2">

@@ -41,40 +41,40 @@
       "sizeBytes": 180,
       "isBinary": false,
       "category": "code",
-      "codeLines": 0,
-      "commentLines": 0
+      "codeLines": 6,
+      "commentLines": 4
     },
     {
       "path": "src/index.php",
       "sizeBytes": 155,
       "isBinary": false,
       "category": "code",
-      "codeLines": 0,
-      "commentLines": 0
+      "codeLines": 5,
+      "commentLines": 3
     },
     {
       "path": "src/student.ts",
       "sizeBytes": 182,
       "isBinary": false,
       "category": "code",
-      "codeLines": 0,
-      "commentLines": 0
+      "codeLines": 7,
+      "commentLines": 2
     },
     {
       "path": "src/sum.js",
       "sizeBytes": 111,
       "isBinary": false,
       "category": "code",
-      "codeLines": 0,
-      "commentLines": 0
+      "codeLines": 4,
+      "commentLines": 2
     },
     {
       "path": "src/total.py",
       "sizeBytes": 124,
       "isBinary": false,
       "category": "code",
-      "codeLines": 0,
-      "commentLines": 0
+      "codeLines": 3,
+      "commentLines": 2
     }
   ],
   "checklist": {
@@ -107,5 +107,21 @@
         "files": []
       }
     ]
+  },
+  "codeStats": {
+    "lines": {
+      "code": 25,
+      "comments": 13,
+      "docs": 0,
+      "tests": 0,
+      "config": 0,
+      "total": 38
+    },
+    "junk": {
+      "files": 0,
+      "bytes": 0,
+      "lines": 0,
+      "samplePaths": []
+    }
   }
 }

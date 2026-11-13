@@ -8,7 +8,7 @@ import {
 import * as echarts from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
 
-import { useTheme } from "@/components/theme-provider";
+import { useTheme } from "@/lib/hooks";
 
 echarts.use([
   BarChart,
