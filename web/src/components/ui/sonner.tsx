@@ -1,5 +1,3 @@
-import { useTheme } from "@/lib/hooks";
-import { Toaster as Sonner, type ToasterProps } from "sonner";
 import {
   CircleCheckIcon,
   InfoIcon,
@@ -7,6 +5,9 @@ import {
   OctagonXIcon,
   Loader2Icon,
 } from "lucide-react";
+import { Toaster as Sonner, type ToasterProps } from "sonner";
+
+import { useTheme } from "@/lib/hooks";
 
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = "system" } = useTheme();

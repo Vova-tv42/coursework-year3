@@ -90,7 +90,7 @@ export function Checklist({ repositoryId }: { repositoryId: number }) {
                     item.files.map((file) => (
                       <div
                         key={file}
-                        className="text-muted-foreground break-all"
+                        className="break-all text-muted-foreground"
                       >
                         {file}
                       </div>

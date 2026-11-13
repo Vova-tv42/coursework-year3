@@ -1,4 +1,3 @@
-import { useMemo, useState, type SubmitEvent } from "react";
 import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query";
 import {
   createColumnHelper,
@@ -17,6 +16,7 @@ import {
   Plus,
   Trash2,
 } from "lucide-react";
+import { useMemo, useState, type SubmitEvent } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
 
@@ -32,7 +32,6 @@ import {
   type StudentOverview,
 } from "@/api/client";
 import { AdmissionBadge } from "@/components/checklist";
-import { useCurrentUser } from "@/lib/hooks";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,
@@ -81,7 +80,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
 import {
   Table,
   TableBody,
@@ -90,6 +88,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useCurrentUser } from "@/lib/hooks";
+import { cn } from "@/lib/utils";
 
 const streamItems = Object.entries(streamLabels).map(([value, label]) => ({
   value: value as Stream,

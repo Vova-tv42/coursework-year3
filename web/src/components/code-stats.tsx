@@ -132,7 +132,7 @@ export function CodeStats({ repositoryId }: { repositoryId: number }) {
               <TableBody>
                 {junk.samplePaths.map((path) => (
                   <TableRow key={path}>
-                    <TableCell className="whitespace-normal break-all">
+                    <TableCell className="break-all whitespace-normal">
                       {path}
                     </TableCell>
                   </TableRow>
