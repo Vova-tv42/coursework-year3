@@ -22,6 +22,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { firstLine } from "@/lib/utils";
+import { CommitLink } from "@/pages/commit";
 
 const commitDateFormat = new Intl.DateTimeFormat("en-GB", {
   dateStyle: "medium",
@@ -32,8 +34,6 @@ const commitDateFormat = new Intl.DateTimeFormat("en-GB", {
 const lineCountFormat = new Intl.NumberFormat("en-GB", {
   maximumFractionDigits: 1,
 });
-
-const shortSHALength = 7;
 
 function bucketChartOption(sizes: CommitSizeStats): ChartOption {
   return {
@@ -55,11 +55,13 @@ function bucketChartOption(sizes: CommitSizeStats): ChartOption {
   };
 }
 
-function firstLine(message: string) {
-  return message.split("\n", 1)[0];
-}
-
-function LargeCommitsTable({ commits }: { commits: CommitSummary[] }) {
+function LargeCommitsTable({
+  repositoryId,
+  commits,
+}: {
+  repositoryId: number;
+  commits: CommitSummary[];
+}) {
   if (commits.length === 0) {
     return (
       <p className="text-muted-foreground">
@@ -86,7 +88,9 @@ function LargeCommitsTable({ commits }: { commits: CommitSummary[] }) {
             <TableCell>
               {commitDateFormat.format(new Date(commit.authoredAt))}
             </TableCell>
-            <TableCell>{commit.sha.slice(0, shortSHALength)}</TableCell>
+            <TableCell>
+              <CommitLink repositoryId={repositoryId} sha={commit.sha} />
+            </TableCell>
             <TableCell>{firstLine(commit.message)}</TableCell>
             <TableCell>{commit.authorName}</TableCell>
             <TableCell>{commit.linesAdded}</TableCell>
@@ -142,7 +146,10 @@ export function CommitSizes({ repositoryId }: { repositoryId: number }) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <LargeCommitsTable commits={sizes.data.largeCommits} />
+          <LargeCommitsTable
+            repositoryId={repositoryId}
+            commits={sizes.data.largeCommits}
+          />
         </CardContent>
       </Card>
     </div>

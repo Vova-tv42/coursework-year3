@@ -367,7 +367,7 @@ function DeleteStudentDialog({
   );
 }
 
-function SortIcon({ direction }: { direction: false | "asc" | "desc" }) {
+export function SortIcon({ direction }: { direction: false | "asc" | "desc" }) {
   if (direction === "asc") return <ArrowUp />;
   if (direction === "desc") return <ArrowDown />;
   return <ArrowUpDown />;

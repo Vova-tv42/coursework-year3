@@ -145,6 +145,31 @@ export interface CodeStats {
   };
 }
 
+export interface FileModifications {
+  path: string;
+  modifications: number;
+  linesAdded: number;
+  linesDeleted: number;
+  lastModifiedAt: string;
+}
+
+export interface CommitFile {
+  path: string;
+  oldPath: string | null;
+  linesAdded: number;
+  linesDeleted: number;
+  isBinary: boolean;
+}
+
+export interface CommitDetails extends CommitSummary {
+  files: CommitFile[];
+}
+
+export interface CommitDiff {
+  diff: string;
+  truncated: boolean;
+}
+
 export interface JunkPatterns {
   patterns: string[];
   isDefault: boolean;
@@ -271,6 +296,17 @@ export const api = {
     request<Checklist>("GET", `/repos/${repositoryId}/checklist`),
   getCodeStats: (repositoryId: number) =>
     request<CodeStats>("GET", `/repos/${repositoryId}/code-stats`),
+  getTopFiles: (repositoryId: number) =>
+    request<FileModifications[]>("GET", `/repos/${repositoryId}/files`),
+  getFileCommits: (repositoryId: number, path: string) =>
+    request<CommitSummary[]>(
+      "GET",
+      `/repos/${repositoryId}/file-commits?${new URLSearchParams({ path })}`,
+    ),
+  getCommit: (repositoryId: number, sha: string) =>
+    request<CommitDetails>("GET", `/repos/${repositoryId}/commits/${sha}`),
+  getCommitDiff: (repositoryId: number, sha: string) =>
+    request<CommitDiff>("GET", `/repos/${repositoryId}/commits/${sha}/diff`),
 
   getJunkPatterns: () => request<JunkPatterns>("GET", "/me/junk-patterns"),
   setJunkPatterns: (patterns: string[]) =>
@@ -341,6 +377,30 @@ export const codeStatsQuery = (repositoryId: number) =>
   queryOptions({
     queryKey: [...analysisResultsKey(repositoryId), "code-stats"],
     queryFn: () => api.getCodeStats(repositoryId),
+  });
+
+export const topFilesQuery = (repositoryId: number) =>
+  queryOptions({
+    queryKey: [...analysisResultsKey(repositoryId), "files"],
+    queryFn: () => api.getTopFiles(repositoryId),
+  });
+
+export const fileCommitsQuery = (repositoryId: number, path: string) =>
+  queryOptions({
+    queryKey: [...analysisResultsKey(repositoryId), "file-commits", path],
+    queryFn: () => api.getFileCommits(repositoryId, path),
+  });
+
+export const commitQuery = (repositoryId: number, sha: string) =>
+  queryOptions({
+    queryKey: [...analysisResultsKey(repositoryId), "commit", sha],
+    queryFn: () => api.getCommit(repositoryId, sha),
+  });
+
+export const commitDiffQuery = (repositoryId: number, sha: string) =>
+  queryOptions({
+    queryKey: [...analysisResultsKey(repositoryId), "commit-diff", sha],
+    queryFn: () => api.getCommitDiff(repositoryId, sha),
   });
 
 export const junkPatternsQuery = queryOptions({

@@ -26,6 +26,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { CommitLink } from "@/pages/commit";
 
 const seriesTimeFormat = new Intl.DateTimeFormat("en-GB", {
   dateStyle: "medium",
@@ -33,7 +34,6 @@ const seriesTimeFormat = new Intl.DateTimeFormat("en-GB", {
   timeZone: "Europe/Kyiv",
 });
 
-const shortSHALength = 7;
 const dayMs = 24 * 60 * 60 * 1000;
 
 // Days without commits are added as zeros, so the slider moves in whole calendar days
@@ -156,7 +156,13 @@ function activityChartOption(days: DayActivity[]): ChartOption {
   };
 }
 
-function RapidSeriesTable({ rapidSeries }: { rapidSeries: RapidSeries[] }) {
+function RapidSeriesTable({
+  repositoryId,
+  rapidSeries,
+}: {
+  repositoryId: number;
+  rapidSeries: RapidSeries[];
+}) {
   if (rapidSeries.length === 0) {
     return <p className="text-muted-foreground">No rapid series found.</p>;
   }
@@ -182,9 +188,15 @@ function RapidSeriesTable({ rapidSeries }: { rapidSeries: RapidSeries[] }) {
             </TableCell>
             <TableCell>{series.commits.length}</TableCell>
             <TableCell>
-              {series.commits
-                .map((commit) => commit.sha.slice(0, shortSHALength))
-                .join(", ")}
+              <div className="flex flex-wrap gap-x-3">
+                {series.commits.map((commit) => (
+                  <CommitLink
+                    key={commit.sha}
+                    repositoryId={repositoryId}
+                    sha={commit.sha}
+                  />
+                ))}
+              </div>
             </TableCell>
           </TableRow>
         ))}
@@ -240,7 +252,10 @@ export function ActivityChart({ repositoryId }: { repositoryId: number }) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <RapidSeriesTable rapidSeries={activity.data.rapidSeries} />
+          <RapidSeriesTable
+            repositoryId={repositoryId}
+            rapidSeries={activity.data.rapidSeries}
+          />
         </CardContent>
       </Card>
     </div>

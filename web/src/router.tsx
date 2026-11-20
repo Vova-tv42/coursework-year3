@@ -9,13 +9,16 @@ import {
 
 import {
   api,
+  commitQuery,
   isApiErrorWithStatus,
   queryClient,
+  repositoryQuery,
   studentQuery,
   type User,
 } from "@/api/client";
 import { Layout } from "@/components/layout";
 import { signedInRouteId } from "@/lib/hooks";
+import { CommitPage } from "@/pages/commit";
 import { NotFoundPage, RouteError } from "@/pages/errors";
 import { LoginPage } from "@/pages/login";
 import { RegisterPage } from "@/pages/register";
@@ -55,6 +58,19 @@ async function loadStudent({ params }: LoaderFunctionArgs) {
   }
 }
 
+async function loadCommit({ params }: LoaderFunctionArgs) {
+  const repositoryId = Number(params.repoId);
+  try {
+    return await Promise.all([
+      queryClient.ensureQueryData(commitQuery(repositoryId, params.sha ?? "")),
+      queryClient.ensureQueryData(repositoryQuery(repositoryId)),
+    ]);
+  } catch (error) {
+    if (isApiErrorWithStatus(error, 404)) throw data(null, { status: 404 });
+    throw error;
+  }
+}
+
 export const router = createBrowserRouter([
   {
     hydrateFallbackElement: <div className="min-h-svh" />,
@@ -78,6 +94,12 @@ export const router = createBrowserRouter([
             path: "students/:studentId",
             loader: loadStudent,
             element: <StudentPage />,
+            errorElement: <RouteError />,
+          },
+          {
+            path: "repos/:repoId/commits/:sha",
+            loader: loadCommit,
+            element: <CommitPage />,
             errorElement: <RouteError />,
           },
           { path: "settings", element: <SettingsPage /> },
