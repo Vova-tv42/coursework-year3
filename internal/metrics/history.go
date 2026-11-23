@@ -131,7 +131,7 @@ func Summarize(commit git.Commit) CommitSummary {
 func DailyActivity(commits []git.Commit) []DayActivity {
 	activityByDate := map[string]*DayActivity{}
 	for _, commit := range commits {
-		date := commit.AuthoredAt.In(kyivLocation).Format(time.DateOnly)
+		date := kyivDate(commit.AuthoredAt)
 		day, found := activityByDate[date]
 		if !found {
 			day = &DayActivity{Date: date}

@@ -21,7 +21,9 @@
     {
       "files": ["src/components/ui/**"],
       "rules": {
-        "react/only-export-components": "off"
+        "react/only-export-components": "off",
+        "no-shadow": "off",
+        "react/no-unstable-nested-components": "off"
       }
     }
   ]

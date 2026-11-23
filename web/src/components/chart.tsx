@@ -3,6 +3,7 @@ import { BarChart, LineChart } from "echarts/charts";
 import {
   DataZoomComponent,
   GridComponent,
+  MarkAreaComponent,
   TooltipComponent,
 } from "echarts/components";
 import * as echarts from "echarts/core";
@@ -15,6 +16,7 @@ echarts.use([
   LineChart,
   DataZoomComponent,
   GridComponent,
+  MarkAreaComponent,
   TooltipComponent,
   CanvasRenderer,
 ]);

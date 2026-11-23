@@ -16,6 +16,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
 
+	"coursework/internal/metrics"
 	"coursework/internal/worker"
 )
 
@@ -26,12 +27,26 @@ const hasRapidSeriesCondition = "EXISTS (SELECT 1 FROM rapid_series rs WHERE rs.
 // NULL until the first successful analysis stores the checklist
 const admittedExpression = "(r.checklist->>'admitted')::boolean"
 
+const kyivToday = "(now() AT TIME ZONE '" + metrics.TimeZone + "')::date"
+
+// The checklist is stored by every successful analysis, so repositories never analyzed get no signal
+const noPracticeActivityCondition = `(r.checklist IS NOT NULL AND EXISTS (
+	SELECT 1 FROM calendar_periods p
+	WHERE p.kind = 'practice'
+		AND (p.stream = 'all' OR p.stream::text = s.stream::text)
+		AND p.start_date <= ` + kyivToday + `
+		AND NOT EXISTS (
+			SELECT 1 FROM commits c
+			WHERE c.repository_id = r.id
+				AND (c.authored_at AT TIME ZONE '` + metrics.TimeZone + `')::date
+					BETWEEN p.start_date AND LEAST(p.end_date, ` + kyivToday + `))))`
+
 // $1 = viewer role, $2 = viewer id, $3 = viewer stream (NULL unless coordinator).
 const visibleStudentsQuery = `
 	SELECT s.id, s.full_name, s.stream, s.supervisor_id, supervisor.display_name,
 		r.id, r.clone_url, r.default_branch, r.status, r.status_reason,
 		r.analysis_started_at, r.analysis_finished_at, r.last_commit_at, r.hosting_metadata,
-		` + hasRapidSeriesCondition + `, ` + admittedExpression + `
+		` + hasRapidSeriesCondition + `, ` + admittedExpression + `, ` + noPracticeActivityCondition + `
 	FROM students s
 	JOIN users supervisor ON supervisor.id = s.supervisor_id
 	JOIN repositories r ON r.student_id = s.id
@@ -61,8 +76,9 @@ type studentOverview struct {
 }
 
 type studentFlags struct {
-	Admitted    *bool `json:"admitted"`
-	RapidSeries bool  `json:"rapidSeries"`
+	Admitted           *bool `json:"admitted"`
+	NoPracticeActivity bool  `json:"noPracticeActivity"`
+	RapidSeries        bool  `json:"rapidSeries"`
 }
 
 type repository struct {
@@ -97,12 +113,19 @@ func (s *server) listStudents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	noPracticeActivityFilter, err := parseBoolFilter(r, "noPracticeActivity")
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_input", err.Error())
+		return
+	}
+
 	rows, err := s.pool.Query(r.Context(), visibleStudentsQuery+`
 		AND ($4::text IS NULL OR s.stream::text = $4)
 		AND ($5::boolean IS NULL OR `+hasRapidSeriesCondition+` = $5)
 		AND ($6::boolean IS NULL OR `+admittedExpression+` = $6)
+		AND ($7::boolean IS NULL OR `+noPracticeActivityCondition+` = $7)
 		ORDER BY s.full_name, s.id`,
-		viewer.Role, viewer.ID, viewer.Stream, streamFilter, rapidSeriesFilter, admittedFilter)
+		viewer.Role, viewer.ID, viewer.Stream, streamFilter, rapidSeriesFilter, admittedFilter, noPracticeActivityFilter)
 
 	if err != nil {
 		writeInternalError(w, r, err)
@@ -305,7 +328,7 @@ func scanStudent(row pgx.Row, viewer user) (studentOverview, error) {
 	err := row.Scan(&student.ID, &student.FullName, &student.Stream, &supervisorID, &student.SupervisorName,
 		&repo.ID, &repo.CloneURL, &repo.DefaultBranch, &repo.Status, &repo.StatusReason,
 		&repo.AnalysisStartedAt, &repo.AnalysisFinishedAt, &repo.LastCommitAt, &repo.Hosting,
-		&student.Flags.RapidSeries, &student.Flags.Admitted)
+		&student.Flags.RapidSeries, &student.Flags.Admitted, &student.Flags.NoPracticeActivity)
 
 	repo.StudentID = student.ID
 	student.CanEdit = supervisorID == viewer.ID

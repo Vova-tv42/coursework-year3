@@ -55,7 +55,14 @@ func TestNeverAnalyzedRepositoryHasEmptyResults(t *testing.T) {
 
 	response := anna.call(http.MethodGet, repositoryPath+"/activity", nil)
 	require.Equal(t, http.StatusOK, response.status, string(response.body))
-	require.JSONEq(t, `{"timeZone":"Europe/Kyiv","days":[],"rapidSeries":[]}`, string(response.body))
+	activity := decode[activityResponse](t, response)
+	require.Empty(t, activity.Days)
+	require.Empty(t, activity.RapidSeries)
+	require.Contains(t, string(response.body), `"days":[]`)
+	for _, period := range activity.Periods {
+		require.Zero(t, period.Commits)
+		require.False(t, period.NoActivitySignal, period.Name)
+	}
 
 	response = anna.call(http.MethodGet, repositoryPath+"/commit-sizes", nil)
 	require.Equal(t, http.StatusOK, response.status, string(response.body))

@@ -104,6 +104,11 @@ const rapidSeriesFilterItems = [
   { value: true, label: "With rapid series" },
   { value: false, label: "Without rapid series" },
 ];
+const practiceFilterItems = [
+  { value: null, label: "Any practice activity" },
+  { value: true, label: "No practice activity" },
+  { value: false, label: "With practice activity" },
+];
 const admittedFilterItems = [
   { value: null, label: "Any checklist status" },
   { value: true, label: "Admitted" },
@@ -178,6 +183,14 @@ function createColumns(
           <AdmissionBadge admitted={admitted} />
         );
       },
+    }),
+    columnHelper.accessor((student) => student.flags.noPracticeActivity, {
+      id: "noPracticeActivity",
+      header: "Practice",
+      cell: (info) =>
+        info.getValue() && (
+          <Badge variant="destructive">No practice activity</Badge>
+        ),
     }),
     columnHelper.accessor((student) => student.flags.rapidSeries, {
       id: "rapidSeries",
@@ -381,6 +394,7 @@ export function StudentsPage() {
     null,
   );
   const [admittedFilter, setAdmittedFilter] = useState<boolean | null>(null);
+  const [practiceFilter, setPracticeFilter] = useState<boolean | null>(null);
   const [formStudent, setFormStudent] = useState<StudentOverview | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [deletingStudent, setDeletingStudent] =
@@ -391,6 +405,7 @@ export function StudentsPage() {
       stream: streamFilter,
       rapidSeries: rapidSeriesFilter,
       admitted: admittedFilter,
+      noPracticeActivity: practiceFilter,
     }),
     placeholderData: keepPreviousData,
   });
@@ -413,7 +428,8 @@ export function StudentsPage() {
   const isFiltered =
     streamFilter !== null ||
     rapidSeriesFilter !== null ||
-    admittedFilter !== null;
+    admittedFilter !== null ||
+    practiceFilter !== null;
   const emptyMessage = isFiltered
     ? "No students match the filters."
     : canAddStudents
@@ -436,6 +452,24 @@ export function StudentsPage() {
             <SelectContent alignItemWithTrigger={false}>
               <SelectGroup>
                 {admittedFilterItems.map((item) => (
+                  <SelectItem key={item.label} value={item.value}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+          <Select
+            items={practiceFilterItems}
+            value={practiceFilter}
+            onValueChange={(value) => setPracticeFilter(value)}
+          >
+            <SelectTrigger aria-label="Practice activity filter">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent alignItemWithTrigger={false}>
+              <SelectGroup>
+                {practiceFilterItems.map((item) => (
                   <SelectItem key={item.label} value={item.value}>
                     {item.label}
                   </SelectItem>

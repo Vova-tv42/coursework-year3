@@ -3,6 +3,8 @@ import { QueryClient, queryOptions } from "@tanstack/react-query";
 export type Role = "supervisor" | "coordinator" | "repo_manager";
 export type Stream = "bachelor" | "master";
 export type AnalysisStatus = "never" | "queued" | "running" | "done" | "failed";
+export type PeriodStream = "all" | Stream;
+export type PeriodKind = "work_start" | "practice" | "checkpoint";
 
 export interface User {
   id: number;
@@ -52,6 +54,7 @@ export interface Repository {
 
 export interface StudentFlags {
   admitted: boolean | null;
+  noPracticeActivity: boolean;
   rapidSeries: boolean;
 }
 
@@ -69,6 +72,7 @@ export interface StudentFilters {
   stream: Stream | null;
   rapidSeries: boolean | null;
   admitted: boolean | null;
+  noPracticeActivity: boolean | null;
 }
 
 export interface CommitSummary {
@@ -94,9 +98,31 @@ export interface RapidSeries {
   commits: CommitSummary[];
 }
 
+export interface CalendarPeriod {
+  id: number;
+  name: string;
+  kind: PeriodKind;
+  stream: PeriodStream;
+  startDate: string | null;
+  endDate: string | null;
+}
+
+export interface CalendarPeriodInput {
+  name: string;
+  startDate: string | null;
+  endDate: string | null;
+}
+
+export interface PeriodActivity extends CalendarPeriod {
+  commits: number;
+  linesChanged: number;
+  noActivitySignal: boolean;
+}
+
 export interface Activity {
   timeZone: string;
   days: DayActivity[];
+  periods: PeriodActivity[];
   rapidSeries: RapidSeries[];
 }
 
@@ -191,6 +217,11 @@ export const streamLabels: Record<Stream, string> = {
   master: "Master",
 };
 
+export const periodStreamLabels: Record<PeriodStream, string> = {
+  all: "All",
+  ...streamLabels,
+};
+
 export const statusLabels: Record<AnalysisStatus, string> = {
   never: "Not analyzed",
   queued: "Queued",
@@ -214,11 +245,19 @@ export function isAnalysisInProgress(status: AnalysisStatus) {
   return status === "queued" || status === "running";
 }
 
-function studentsPath({ stream, rapidSeries, admitted }: StudentFilters) {
+function studentsPath({
+  stream,
+  rapidSeries,
+  admitted,
+  noPracticeActivity,
+}: StudentFilters) {
   const params = new URLSearchParams();
   if (stream) params.set("stream", stream);
   if (rapidSeries !== null) params.set("rapidSeries", String(rapidSeries));
   if (admitted !== null) params.set("admitted", String(admitted));
+  if (noPracticeActivity !== null) {
+    params.set("noPracticeActivity", String(noPracticeActivity));
+  }
 
   const query = params.toString();
   return query ? `/students?${query}` : "/students";
@@ -307,6 +346,10 @@ export const api = {
     request<CommitDetails>("GET", `/repos/${repositoryId}/commits/${sha}`),
   getCommitDiff: (repositoryId: number, sha: string) =>
     request<CommitDiff>("GET", `/repos/${repositoryId}/commits/${sha}/diff`),
+
+  listCalendarPeriods: () => request<CalendarPeriod[]>("GET", "/calendar"),
+  updateCalendarPeriod: (periodId: number, input: CalendarPeriodInput) =>
+    request<CalendarPeriod>("PUT", `/calendar/${periodId}`, input),
 
   getJunkPatterns: () => request<JunkPatterns>("GET", "/me/junk-patterns"),
   setJunkPatterns: (patterns: string[]) =>
@@ -406,4 +449,9 @@ export const commitDiffQuery = (repositoryId: number, sha: string) =>
 export const junkPatternsQuery = queryOptions({
   queryKey: ["junk-patterns"],
   queryFn: api.getJunkPatterns,
+});
+
+export const calendarQuery = queryOptions({
+  queryKey: ["calendar"],
+  queryFn: api.listCalendarPeriods,
 });

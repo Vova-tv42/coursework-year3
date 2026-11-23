@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   activityQuery,
   type DayActivity,
+  type PeriodActivity,
   type RapidSeries,
 } from "@/api/client";
 import {
@@ -11,6 +12,7 @@ import {
   type ChartOption,
 } from "@/components/chart";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -26,6 +28,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { formatPeriodDates } from "@/lib/utils";
 import { CommitLink } from "@/pages/commit";
 
 const seriesTimeFormat = new Intl.DateTimeFormat("en-GB", {
@@ -88,16 +91,121 @@ function snapZoomToDaysOnRelease(chart: ChartInstance) {
   });
 }
 
-function activityChartOption(days: DayActivity[]): ChartOption {
+// The border separates periods that follow each other; its color comes from the series
+const periodBandStyle = { borderWidth: 1, borderType: "dashed" };
+const periodLabelTop = 4;
+const periodLabelGap = 8;
+// The default ECharts label font, used to measure label widths
+const periodLabelFont = "12px sans-serif";
+const gridLeft = 64;
+const gridRight = 24;
+
+// Periods are cut to the days on the chart; ISO dates compare correctly as strings
+function periodBands(periods: PeriodActivity[], allDays: DayActivity[]) {
+  const firstDate = allDays[0].date;
+  const lastDate = allDays[allDays.length - 1].date;
+
+  const visiblePeriods = periods.flatMap((period) => {
+    if (period.startDate === null || period.endDate === null) return [];
+
+    const bandStart =
+      period.startDate > firstDate ? period.startDate : firstDate;
+    const bandEnd = period.endDate < lastDate ? period.endDate : lastDate;
+    // ECharts draws a band between day centers, so a single day would have no width
+    const isVisibleBand = bandStart < bandEnd;
+    if (!isVisibleBand) return [];
+
+    return [{ name: period.name, bandStart, bandEnd }];
+  });
+
+  // A position array is not an "inside" position, so ECharts keeps the theme text color
+  return visiblePeriods.map((period) => [
+    {
+      name: period.name,
+      xAxis: formatChartDate(period.bandStart),
+      label: { position: ["50%", periodLabelTop], align: "center" },
+    },
+    { xAxis: formatChartDate(period.bandEnd) },
+  ]);
+}
+
+interface BandPoint {
+  name?: string;
+  xAxis: string;
+  label?: { show?: boolean };
+}
+
+interface SeriesWithBands {
+  markArea?: { data: [BandPoint, BandPoint][] };
+}
+
+let labelMeasureContext: CanvasRenderingContext2D | null = null;
+
+function measureLabelWidth(text: string) {
+  labelMeasureContext ??= document.createElement("canvas").getContext("2d");
+  if (!labelMeasureContext) return 0;
+
+  labelMeasureContext.font = periodLabelFont;
+  return labelMeasureContext.measureText(text).width;
+}
+
+// All labels share one row, so a label that would cover an earlier period's label is hidden for the current zoom
+function hideOverlappingPeriodLabels(chart: ChartInstance) {
+  const [commitsSeries] = chart.getOption().series as SeriesWithBands[];
+  const bands = commitsSeries.markArea?.data ?? [];
+  const gridRightEdge = chart.getWidth() - gridRight;
+  const toPixel = (date: string) =>
+    chart.convertToPixel({ xAxisIndex: 0 }, date) as number;
+  const shownLabels: { left: number; right: number }[] = [];
+
+  const updatedBands = bands.map(([start, end]): [BandPoint, BandPoint] => {
+    // ECharts centers the label in the part of the band that is inside the grid
+    const visibleLeft = Math.max(toPixel(start.xAxis), gridLeft);
+    const visibleRight = Math.min(toPixel(end.xAxis), gridRightEdge);
+    const center = (visibleLeft + visibleRight) / 2;
+    const halfWidth = measureLabelWidth(start.name ?? "") / 2 + periodLabelGap;
+    const label = { left: center - halfWidth, right: center + halfWidth };
+
+    const isBandVisible = visibleLeft < visibleRight;
+    const coversShownLabel = shownLabels.some(
+      (shown) => label.left < shown.right && shown.left < label.right,
+    );
+    const isLabelShown = isBandVisible && !coversShownLabel;
+    if (isLabelShown) shownLabels.push(label);
+
+    return [{ ...start, label: { ...start.label, show: isLabelShown } }, end];
+  });
+
+  // Updating only on a change stops the loop, because setOption fires "finished" again
+  const isVisibilityChanged = updatedBands.some(
+    ([start], index) =>
+      start.label?.show !== (bands[index][0].label?.show ?? true),
+  );
+  if (!isVisibilityChanged) return;
+
+  chart.setOption({ series: [{ markArea: { data: updatedBands } }] });
+}
+
+function setUpActivityChart(chart: ChartInstance) {
+  snapZoomToDaysOnRelease(chart);
+  // "finished" follows every render: zoom, resize and new data
+  chart.on("finished", () => hideOverlappingPeriodLabels(chart));
+}
+
+function activityChartOption(
+  days: DayActivity[],
+  periods: PeriodActivity[],
+): ChartOption {
   const allDays = withEmptyDays(days);
   const dates = allDays.map((day) => formatChartDate(day.date));
+  const bands = periodBands(periods, allDays);
 
   return {
     tooltip: { trigger: "axis" },
     axisPointer: { link: [{ xAxisIndex: "all" }] },
     grid: [
-      { top: 32, left: 64, right: 24, height: 160 },
-      { top: 248, left: 64, right: 24, height: 160 },
+      { top: 32, left: gridLeft, right: gridRight, height: 160 },
+      { top: 248, left: gridLeft, right: gridRight, height: 160 },
     ],
     xAxis: [
       {
@@ -142,6 +250,7 @@ function activityChartOption(days: DayActivity[]): ChartOption {
         xAxisIndex: 0,
         yAxisIndex: 0,
         data: allDays.map((day) => day.commits),
+        markArea: { data: bands, itemStyle: periodBandStyle },
       },
       {
         name: "Changed lines",
@@ -151,9 +260,51 @@ function activityChartOption(days: DayActivity[]): ChartOption {
         xAxisIndex: 1,
         yAxisIndex: 1,
         data: allDays.map((day) => day.linesChanged),
+        markArea: {
+          data: bands,
+          itemStyle: periodBandStyle,
+          label: { show: false },
+        },
       },
     ],
   };
+}
+
+function PeriodsTable({ periods }: { periods: PeriodActivity[] }) {
+  if (periods.length === 0) {
+    return <p className="text-muted-foreground">No calendar periods.</p>;
+  }
+
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Period</TableHead>
+          <TableHead>Dates</TableHead>
+          <TableHead>Commits</TableHead>
+          <TableHead>Changed lines</TableHead>
+          <TableHead>Signals</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {periods.map((period) => (
+          <TableRow key={period.id}>
+            <TableCell>{period.name}</TableCell>
+            <TableCell>
+              {formatPeriodDates(period.startDate, period.endDate)}
+            </TableCell>
+            <TableCell>{period.commits}</TableCell>
+            <TableCell>{period.linesChanged}</TableCell>
+            <TableCell>
+              {period.noActivitySignal && (
+                <Badge variant="destructive">No practice activity</Badge>
+              )}
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
 }
 
 function RapidSeriesTable({
@@ -218,46 +369,64 @@ export function ActivityChart({ repositoryId }: { repositoryId: number }) {
     );
   }
 
-  if (activity.data.days.length === 0) {
-    return (
-      <p className="text-muted-foreground">
-        The default branch has no commits.
-      </p>
-    );
-  }
+  const hasCommits = activity.data.days.length > 0;
 
   return (
     <div className="flex flex-col gap-4">
+      {hasCommits ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Activity per day</CardTitle>
+            <CardDescription>
+              Days in the {activity.data.timeZone} time zone, by author date.
+              Shaded areas are calendar periods.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Chart
+              option={activityChartOption(
+                activity.data.days,
+                activity.data.periods,
+              )}
+              height={500}
+              onChartReady={setUpActivityChart}
+            />
+          </CardContent>
+        </Card>
+      ) : (
+        <p className="text-muted-foreground">
+          The default branch has no commits.
+        </p>
+      )}
       <Card>
         <CardHeader>
-          <CardTitle>Activity per day</CardTitle>
+          <CardTitle>Calendar periods</CardTitle>
           <CardDescription>
-            Days in the {activity.data.timeZone} time zone, by author date.
+            Commits and changed lines inside each period of the student's
+            stream.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Chart
-            option={activityChartOption(activity.data.days)}
-            height={500}
-            onChartReady={snapZoomToDaysOnRelease}
-          />
+          <PeriodsTable periods={activity.data.periods} />
         </CardContent>
       </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>Rapid commit series</CardTitle>
-          <CardDescription>
-            Three or more commits at most a minute apart. This is a signal to
-            look at, not a verdict.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <RapidSeriesTable
-            repositoryId={repositoryId}
-            rapidSeries={activity.data.rapidSeries}
-          />
-        </CardContent>
-      </Card>
+      {hasCommits && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Rapid commit series</CardTitle>
+            <CardDescription>
+              Three or more commits at most a minute apart. This is a signal to
+              look at, not a verdict.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <RapidSeriesTable
+              repositoryId={repositoryId}
+              rapidSeries={activity.data.rapidSeries}
+            />
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

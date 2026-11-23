@@ -50,6 +50,12 @@ export function Layout() {
             Students
           </NavLink>
           <NavLink
+            to="/calendar"
+            className={buttonVariants({ variant: "ghost" })}
+          >
+            Calendar
+          </NavLink>
+          <NavLink
             to="/settings"
             className={buttonVariants({ variant: "ghost" })}
           >

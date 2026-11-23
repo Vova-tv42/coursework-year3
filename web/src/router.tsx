@@ -18,6 +18,7 @@ import {
 } from "@/api/client";
 import { Layout } from "@/components/layout";
 import { signedInRouteId } from "@/lib/hooks";
+import { CalendarPage } from "@/pages/calendar";
 import { CommitPage } from "@/pages/commit";
 import { NotFoundPage, RouteError } from "@/pages/errors";
 import { LoginPage } from "@/pages/login";
@@ -102,6 +103,7 @@ export const router = createBrowserRouter([
             element: <CommitPage />,
             errorElement: <RouteError />,
           },
+          { path: "calendar", element: <CalendarPage /> },
           { path: "settings", element: <SettingsPage /> },
           { path: "*", element: <NotFoundPage /> },
         ],

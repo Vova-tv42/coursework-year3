@@ -53,6 +53,8 @@ func NewRouter(pool *pgxpool.Pool, jobs *river.Client[pgx.Tx], reposDir string, 
 			signedIn.Get("/me/junk-patterns", s.getJunkPatterns)
 			signedIn.Put("/me/junk-patterns", s.setJunkPatterns)
 			signedIn.Delete("/me/junk-patterns", s.resetJunkPatterns)
+			signedIn.Get("/calendar", s.listCalendarPeriods)
+			signedIn.Put("/calendar/{periodId}", s.updateCalendarPeriod)
 			signedIn.Get("/students", s.listStudents)
 			signedIn.Post("/students", s.createStudent)
 			signedIn.Get("/students/{studentId}", s.getStudent)

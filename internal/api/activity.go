@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 
@@ -11,9 +12,10 @@ import (
 )
 
 type activityResponse struct {
-	TimeZone    string                      `json:"timeZone"`
-	Days        []metrics.DayActivity       `json:"days"`
-	RapidSeries []metrics.RapidCommitSeries `json:"rapidSeries"`
+	TimeZone    string                          `json:"timeZone"`
+	Days        []metrics.DayActivity           `json:"days"`
+	Periods     []metrics.PeriodActivitySummary `json:"periods"`
+	RapidSeries []metrics.RapidCommitSeries     `json:"rapidSeries"`
 }
 
 func (s *server) getActivity(w http.ResponseWriter, r *http.Request) {
@@ -34,9 +36,16 @@ func (s *server) getActivity(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	periods, err := s.loadPeriodActivity(r.Context(), repo.ID, commits)
+	if err != nil {
+		writeInternalError(w, r, err)
+		return
+	}
+
 	writeJSON(w, http.StatusOK, activityResponse{
 		TimeZone:    metrics.TimeZone,
 		Days:        metrics.DailyActivity(commits),
+		Periods:     periods,
 		RapidSeries: rapidSeries,
 	})
 }
@@ -54,6 +63,30 @@ func (s *server) getCommitSizes(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, metrics.CommitSizes(commits))
+}
+
+// loadPeriodActivity gives the practice signal only after a successful analysis, like the student list
+func (s *server) loadPeriodActivity(ctx context.Context, repositoryID int64, commits []git.Commit) ([]metrics.PeriodActivitySummary, error) {
+	periods, err := s.loadCalendarPeriods(ctx, &repositoryID)
+	if err != nil {
+		return nil, err
+	}
+
+	var isAnalyzed bool
+	err = s.pool.QueryRow(ctx, "SELECT checklist IS NOT NULL FROM repositories WHERE id = $1", repositoryID).Scan(&isAnalyzed)
+	if err != nil {
+		return nil, err
+	}
+
+	today := time.Now()
+	summaries := make([]metrics.PeriodActivitySummary, 0, len(periods))
+	for _, period := range periods {
+		summary := metrics.PeriodActivity(commits, period, today)
+		summary.NoActivitySignal = summary.NoActivitySignal && isAnalyzed
+		summaries = append(summaries, summary)
+	}
+
+	return summaries, nil
 }
 
 // loadCommits returns commits newest first, the order the metrics expect from git log
