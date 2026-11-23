@@ -15,10 +15,7 @@ import (
 	"coursework/internal/metrics"
 )
 
-const (
-	maxPeriodNameLength  = 100
-	periodKindCheckpoint = "checkpoint"
-)
+const maxPeriodNameLength = 100
 
 const calendarPeriodColumns = `id, name, kind, stream,
 	to_char(start_date, 'YYYY-MM-DD'), to_char(end_date, 'YYYY-MM-DD')`
@@ -58,19 +55,7 @@ func (s *server) updateCalendarPeriod(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var kind string
-	err = s.pool.QueryRow(r.Context(), "SELECT kind FROM calendar_periods WHERE id = $1", periodID).Scan(&kind)
-	if errors.Is(err, pgx.ErrNoRows) {
-		writePeriodNotFound(w)
-		return
-	}
-
-	if err != nil {
-		writeInternalError(w, r, err)
-		return
-	}
-
-	if err := validateCalendarPeriodInput(input, kind); err != nil {
+	if err := validateCalendarPeriodInput(input); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid_input", err.Error())
 		return
 	}
@@ -86,6 +71,11 @@ func (s *server) updateCalendarPeriod(w http.ResponseWriter, r *http.Request) {
 	}
 
 	period, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByPos[metrics.CalendarPeriod])
+	if errors.Is(err, pgx.ErrNoRows) {
+		writePeriodNotFound(w)
+		return
+	}
+
 	if err != nil {
 		writeInternalError(w, r, err)
 		return
@@ -112,7 +102,7 @@ func (s *server) loadCalendarPeriods(ctx context.Context, repositoryID *int64) (
 	return pgx.CollectRows(rows, pgx.RowToStructByPos[metrics.CalendarPeriod])
 }
 
-func validateCalendarPeriodInput(input calendarPeriodInput, kind string) error {
+func validateCalendarPeriodInput(input calendarPeriodInput) error {
 	nameLength := utf8.RuneCountInString(input.Name)
 	hasStartDate := input.StartDate != nil
 	hasEndDate := input.EndDate != nil
@@ -130,7 +120,6 @@ func validateCalendarPeriodInput(input calendarPeriodInput, kind string) error {
 
 	startDate, startErr := time.Parse(time.DateOnly, *input.StartDate)
 	endDate, endErr := time.Parse(time.DateOnly, *input.EndDate)
-	isCheckpoint := kind == periodKindCheckpoint
 
 	switch {
 	case startErr != nil || endErr != nil:
@@ -138,9 +127,6 @@ func validateCalendarPeriodInput(input calendarPeriodInput, kind string) error {
 
 	case endDate.Before(startDate):
 		return errors.New("end date must not be before the start date")
-
-	case isCheckpoint && !endDate.Equal(startDate):
-		return errors.New("a checkpoint must start and end on the same day")
 	}
 
 	return nil

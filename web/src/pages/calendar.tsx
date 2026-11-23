@@ -43,7 +43,6 @@ import { formatPeriodDates, toApiDate } from "@/lib/utils";
 const periodKindLabels: Record<PeriodKind, string> = {
   work_start: "Work start",
   practice: "Practice",
-  checkpoint: "Checkpoint",
 };
 
 // parseISO reads "2027-04-01" as local midnight, so the picker shows the same day
@@ -53,11 +52,9 @@ function toDateRange(period: CalendarPeriod): DateRange | undefined {
 }
 
 function PeriodDatesPicker({
-  isSingleDay,
   dates,
   onChange,
 }: {
-  isSingleDay: boolean;
   dates: DateRange | undefined;
   onChange: (dates: DateRange | undefined) => void;
 }) {
@@ -75,22 +72,13 @@ function PeriodDatesPicker({
         {formatPeriodDates(shownStartDate, shownEndDate)}
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
-        {isSingleDay ? (
-          <Calendar
-            mode="single"
-            selected={dates?.from}
-            defaultMonth={dates?.from}
-            onSelect={(date) => onChange(date && { from: date, to: date })}
-          />
-        ) : (
-          <Calendar
-            mode="range"
-            numberOfMonths={2}
-            selected={dates}
-            defaultMonth={dates?.from}
-            onSelect={onChange}
-          />
-        )}
+        <Calendar
+          mode="range"
+          numberOfMonths={2}
+          selected={dates}
+          defaultMonth={dates?.from}
+          onSelect={onChange}
+        />
       </PopoverContent>
     </Popover>
   );
@@ -140,11 +128,7 @@ function EditablePeriodRow({ period }: { period: CalendarPeriod }) {
       <TableCell>{periodKindLabels[period.kind]}</TableCell>
       <TableCell>{periodStreamLabels[period.stream]}</TableCell>
       <TableCell>
-        <PeriodDatesPicker
-          isSingleDay={period.kind === "checkpoint"}
-          dates={dates}
-          onChange={setDates}
-        />
+        <PeriodDatesPicker dates={dates} onChange={setDates} />
       </TableCell>
       <TableCell>
         <Button

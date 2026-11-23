@@ -11,10 +11,7 @@ import (
 	"coursework/internal/metrics"
 )
 
-const (
-	bachelorPracticeName = "Bachelor practice"
-	checkpointName       = "Checkpoint"
-)
+const bachelorPracticeName = "Bachelor practice"
 
 func (client *apiClient) calendarPeriods() []metrics.CalendarPeriod {
 	client.t.Helper()
@@ -68,11 +65,11 @@ func TestCalendarHasDefaultPeriods(t *testing.T) {
 	for _, period := range periods {
 		names = append(names, period.Name)
 	}
-	require.Equal(t, []string{"Start of thesis work", checkpointName, bachelorPracticeName, "Master practice"}, names)
-	require.Equal(t, "2027-04-01", *periods[2].StartDate)
-	require.Equal(t, "2027-05-31", *periods[2].EndDate)
-	require.Nil(t, periods[3].StartDate)
-	require.Nil(t, periods[3].EndDate)
+	require.Equal(t, []string{"Start of thesis work", bachelorPracticeName, "Master practice"}, names)
+	require.Equal(t, "2027-04-01", *periods[1].StartDate)
+	require.Equal(t, "2027-05-31", *periods[1].EndDate)
+	require.Nil(t, periods[2].StartDate)
+	require.Nil(t, periods[2].EndDate)
 }
 
 func TestOnlyCoordinatorsAndRepoManagersEditCalendar(t *testing.T) {
@@ -105,20 +102,18 @@ func TestCalendarPeriodValidation(t *testing.T) {
 	testAPI := newTestAPI(t)
 	manager := testAPI.register("manager", roleRepoManager, nil)
 	practicePath := fmt.Sprintf("/calendar/%d", manager.periodID(bachelorPracticeName))
-	checkpointPath := fmt.Sprintf("/calendar/%d", manager.periodID(checkpointName))
 	dateOf := func(date string) *string { return &date }
 
 	invalidInputs := map[string]struct {
 		path  string
 		input calendarPeriodInput
 	}{
-		"empty name":          {practicePath, calendarPeriodInput{Name: ""}},
-		"long name":           {practicePath, calendarPeriodInput{Name: strings.Repeat("a", 101)}},
-		"only start date":     {practicePath, calendarPeriodInput{Name: "Practice", StartDate: dateOf("2027-04-01")}},
-		"end before start":    {practicePath, calendarPeriodInput{Name: "Practice", StartDate: dateOf("2027-04-10"), EndDate: dateOf("2027-04-01")}},
-		"wrong date format":   {practicePath, calendarPeriodInput{Name: "Practice", StartDate: dateOf("01.04.2027"), EndDate: dateOf("2027-05-31")}},
-		"checkpoint two days": {checkpointPath, calendarPeriodInput{Name: checkpointName, StartDate: dateOf("2027-01-01"), EndDate: dateOf("2027-01-02")}},
-		"impossible date":     {practicePath, calendarPeriodInput{Name: "Practice", StartDate: dateOf("2027-02-30"), EndDate: dateOf("2027-05-31")}},
+		"empty name":        {practicePath, calendarPeriodInput{Name: ""}},
+		"long name":         {practicePath, calendarPeriodInput{Name: strings.Repeat("a", 101)}},
+		"only start date":   {practicePath, calendarPeriodInput{Name: "Practice", StartDate: dateOf("2027-04-01")}},
+		"end before start":  {practicePath, calendarPeriodInput{Name: "Practice", StartDate: dateOf("2027-04-10"), EndDate: dateOf("2027-04-01")}},
+		"wrong date format": {practicePath, calendarPeriodInput{Name: "Practice", StartDate: dateOf("01.04.2027"), EndDate: dateOf("2027-05-31")}},
+		"impossible date":   {practicePath, calendarPeriodInput{Name: "Practice", StartDate: dateOf("2027-02-30"), EndDate: dateOf("2027-05-31")}},
 	}
 
 	for name, invalid := range invalidInputs {

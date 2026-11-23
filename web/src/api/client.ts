@@ -4,7 +4,7 @@ export type Role = "supervisor" | "coordinator" | "repo_manager";
 export type Stream = "bachelor" | "master";
 export type AnalysisStatus = "never" | "queued" | "running" | "done" | "failed";
 export type PeriodStream = "all" | Stream;
-export type PeriodKind = "work_start" | "practice" | "checkpoint";
+export type PeriodKind = "work_start" | "practice";
 
 export interface User {
   id: number;

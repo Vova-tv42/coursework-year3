@@ -2,7 +2,7 @@
 CREATE TYPE user_role AS ENUM ('supervisor', 'coordinator', 'repo_manager');
 CREATE TYPE stream AS ENUM ('bachelor', 'master');
 CREATE TYPE period_stream AS ENUM ('all', 'bachelor', 'master');
-CREATE TYPE period_kind AS ENUM ('work_start', 'practice', 'checkpoint');
+CREATE TYPE period_kind AS ENUM ('work_start', 'practice');
 CREATE TYPE analysis_status AS ENUM ('never', 'queued', 'running', 'done', 'failed');
 
 CREATE TABLE users (
@@ -103,15 +103,13 @@ CREATE TABLE calendar_periods (
     start_date date,
     end_date date,
     CONSTRAINT calendar_periods_dates_both_or_none CHECK ((start_date IS NULL) = (end_date IS NULL)),
-    CONSTRAINT calendar_periods_end_after_start CHECK (end_date >= start_date),
-    CONSTRAINT calendar_periods_checkpoint_single_day CHECK (kind <> 'checkpoint' OR start_date = end_date)
+    CONSTRAINT calendar_periods_end_after_start CHECK (end_date >= start_date)
 );
 
 INSERT INTO calendar_periods (name, kind, stream, start_date, end_date) VALUES
     ('Start of thesis work', 'work_start', 'all', '2026-09-01', '2026-09-14'),
     ('Bachelor practice', 'practice', 'bachelor', '2027-04-01', '2027-05-31'),
-    ('Master practice', 'practice', 'master', NULL, NULL),
-    ('Checkpoint', 'checkpoint', 'all', '2027-01-01', '2027-01-01');
+    ('Master practice', 'practice', 'master', NULL, NULL);
 
 CREATE TABLE sessions (
     token text PRIMARY KEY,
