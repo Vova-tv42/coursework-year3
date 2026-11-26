@@ -28,7 +28,8 @@ const (
 )
 
 var (
-	errSizeLimitExceeded = errors.New("size limit exceeded")
+	errSizeLimitExceeded    = errors.New("size limit exceeded")
+	errDefaultBranchMissing = errors.New("default branch not found after fetch")
 	// errRepositoryChanged means the student was removed or got a new clone URL while the job ran
 	errRepositoryChanged = errors.New("repository changed during analysis")
 )
@@ -280,6 +281,10 @@ func (w *AnalyzeWorker) updateClone(ctx context.Context, target analysisTarget) 
 			return fmt.Errorf("fetch failed: %w", err)
 		}
 
+		if err := git.SyncHead(ctx, w.runner, target.cloneDir); err != nil {
+			return fmt.Errorf("sync default branch failed: %w", err)
+		}
+
 		return nil
 	}
 
@@ -304,6 +309,11 @@ func (w *AnalyzeWorker) readHistory(ctx context.Context, target analysisTarget) 
 
 	if result.headSHA, err = git.HeadSHA(ctx, w.runner, target.cloneDir); err != nil {
 		return analysisResult{}, err
+	}
+
+	hasAnalyzedHistory := target.lastAnalyzedHead != nil
+	if result.headSHA == "" && hasAnalyzedHistory {
+		return analysisResult{}, errDefaultBranchMissing
 	}
 
 	if result.headSHA == "" {

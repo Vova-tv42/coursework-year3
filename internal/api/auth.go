@@ -111,6 +111,7 @@ func (s *server) register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	request.Email = normalizeEmail(request.Email)
+	request.DisplayName = strings.TrimSpace(request.DisplayName)
 	if err := validateRegistration(request); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid_input", err.Error())
 		return

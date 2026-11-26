@@ -54,6 +54,23 @@ func Fetch(ctx context.Context, runner Runner, dir string) error {
 	return err
 }
 
+func SyncHead(ctx context.Context, runner Runner, dir string) error {
+	output, err := runner.Run(ctx, dir, "ls-remote", "--symref", "origin", "HEAD")
+	if err != nil {
+		return err
+	}
+
+	firstLine, _, _ := strings.Cut(string(output), "\n")
+	headLine, isSymref := strings.CutPrefix(firstLine, "ref: ")
+	if !isSymref {
+		return nil
+	}
+
+	branchRef, _, _ := strings.Cut(headLine, "\t")
+	_, err = runner.Run(ctx, dir, "symbolic-ref", "HEAD", branchRef)
+	return err
+}
+
 // HeadSHA returns an empty string for a repository without commits
 func HeadSHA(ctx context.Context, runner Runner, dir string) (string, error) {
 	output, err := runner.Run(ctx, dir, "rev-parse", "--verify", "--quiet", "HEAD")

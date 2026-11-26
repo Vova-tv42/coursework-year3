@@ -178,6 +178,7 @@ func TestRegisterValidatesInput(t *testing.T) {
 		"short password":             func(request *registerRequest) { request.Password = "1234567" },
 		"password over bcrypt limit": func(request *registerRequest) { request.Password = string(make([]byte, 73)) },
 		"empty display name":         func(request *registerRequest) { request.DisplayName = "" },
+		"display name of spaces":     func(request *registerRequest) { request.DisplayName = "   " },
 		"unknown role":               func(request *registerRequest) { request.Role = "admin" },
 		"coordinator without stream": func(request *registerRequest) { request.Role = roleCoordinator },
 		"supervisor with stream":     func(request *registerRequest) { request.Stream = streamOf("bachelor") },
@@ -258,7 +259,17 @@ func TestStudentListsAreScopedByRole(t *testing.T) {
 
 	require.Equal(t, []string{"Bob"}, anna.listStudentNames("/students?stream=master"))
 	require.Equal(t, []string{"Alice", "Carol"}, repoManager.listStudentNames("/students?stream=bachelor"))
-	require.Empty(t, repoManager.listStudentNames("/students?stream=phd"))
+	requireError(t, repoManager.call(http.MethodGet, "/students?stream=phd", nil), http.StatusBadRequest, "invalid_input")
+}
+
+func TestStudentsAreSortedByUkrainianAlphabet(t *testing.T) {
+	testAPI := newTestAPI(t)
+	anna := testAPI.register("anna", roleSupervisor, nil)
+	for _, fullName := range []string{"Ярема", "Ґудзь", "Іваненко", "Євтушенко", "Андрієнко"} {
+		anna.addStudent(fullName, "bachelor")
+	}
+
+	require.Equal(t, []string{"Андрієнко", "Ґудзь", "Євтушенко", "Іваненко", "Ярема"}, anna.listStudentNames("/students"))
 }
 
 func TestStudentOverviewFields(t *testing.T) {
@@ -336,16 +347,37 @@ func TestStudentInputValidation(t *testing.T) {
 
 	invalidInputs := []studentInput{
 		{FullName: "", Stream: "bachelor", CloneURL: "https://github.com/a/b.git"},
+		{FullName: "   ", Stream: "bachelor", CloneURL: "https://github.com/a/b.git"},
 		{FullName: "Alice", Stream: "phd", CloneURL: "https://github.com/a/b.git"},
 		{FullName: "Alice", Stream: "bachelor", CloneURL: "ftp://example.com/a.git"},
 		{FullName: "Alice", Stream: "bachelor", CloneURL: "https://github.com"},
 		{FullName: "Alice", Stream: "bachelor", CloneURL: "/home/student/repo"},
 		{FullName: "Alice", Stream: "bachelor", CloneURL: ""},
+		{FullName: "Alice", Stream: "bachelor", CloneURL: "https://user:token@github.com/a/b.git"},
+		{FullName: "Alice", Stream: "bachelor", CloneURL: "https://token@github.com/a/b.git"},
 	}
+	student := anna.addStudent("Bob", "bachelor")
+	studentPath := fmt.Sprintf("/students/%d", student.ID)
 	for _, input := range invalidInputs {
-		response := anna.call(http.MethodPost, "/students", input)
-		requireError(t, response, http.StatusBadRequest, "invalid_input")
+		requireError(t, anna.call(http.MethodPost, "/students", input), http.StatusBadRequest, "invalid_input")
+		requireError(t, anna.call(http.MethodPut, studentPath, input), http.StatusBadRequest, "invalid_input")
 	}
+}
+
+func TestStudentFullNameIsTrimmed(t *testing.T) {
+	testAPI := newTestAPI(t)
+	anna := testAPI.register("anna", roleSupervisor, nil)
+	input := studentInput{FullName: "  Alice Smith  ", Stream: "bachelor", CloneURL: "https://github.com/a/b.git"}
+
+	response := anna.call(http.MethodPost, "/students", input)
+	require.Equal(t, http.StatusCreated, response.status, string(response.body))
+	created := decode[studentOverview](t, response)
+	require.Equal(t, "Alice Smith", created.FullName)
+
+	input.FullName = "  Alice Brown  "
+	response = anna.call(http.MethodPut, fmt.Sprintf("/students/%d", created.ID), input)
+	require.Equal(t, http.StatusOK, response.status, string(response.body))
+	require.Equal(t, "Alice Brown", decode[studentOverview](t, response).FullName)
 }
 
 func TestUpdateStudentResetsAnalysisOnlyWhenCloneURLChanges(t *testing.T) {

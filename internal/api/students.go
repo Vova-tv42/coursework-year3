@@ -98,6 +98,10 @@ func (s *server) listStudents(w http.ResponseWriter, r *http.Request) {
 	viewer := currentUser(r)
 	var streamFilter *string
 	if stream := r.URL.Query().Get("stream"); stream != "" {
+		if !slices.Contains(streams, stream) {
+			writeError(w, http.StatusBadRequest, "invalid_input", "stream must be bachelor or master")
+			return
+		}
 		streamFilter = &stream
 	}
 
@@ -124,7 +128,7 @@ func (s *server) listStudents(w http.ResponseWriter, r *http.Request) {
 		AND ($5::boolean IS NULL OR `+hasRapidSeriesCondition+` = $5)
 		AND ($6::boolean IS NULL OR `+admittedExpression+` = $6)
 		AND ($7::boolean IS NULL OR `+noPracticeActivityCondition+` = $7)
-		ORDER BY s.full_name, s.id`,
+		ORDER BY s.full_name COLLATE "uk-UA-x-icu", s.id`,
 		viewer.Role, viewer.ID, viewer.Stream, streamFilter, rapidSeriesFilter, admittedFilter, noPracticeActivityFilter)
 
 	if err != nil {
@@ -177,6 +181,7 @@ func (s *server) createStudent(w http.ResponseWriter, r *http.Request) {
 	if !readJSON(w, r, &input) {
 		return
 	}
+	input.FullName = strings.TrimSpace(input.FullName)
 	if err := validateStudentInput(input); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid_input", err.Error())
 		return
@@ -217,6 +222,7 @@ func (s *server) updateStudent(w http.ResponseWriter, r *http.Request) {
 	if !readJSON(w, r, &input) {
 		return
 	}
+	input.FullName = strings.TrimSpace(input.FullName)
 	if err := validateStudentInput(input); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid_input", err.Error())
 		return
@@ -362,6 +368,8 @@ func validateStudentInput(input studentInput) error {
 		return fmt.Errorf("full name must be 1-%d characters", maxFullNameLength)
 	case !slices.Contains(streams, input.Stream):
 		return errors.New("stream must be bachelor or master")
+	case hasCloneURLCredentials(input.CloneURL):
+		return errors.New("clone URL must not contain credentials, private repositories use the server token")
 	case !isValidCloneURL(input.CloneURL):
 		return errors.New("clone URL must be an http(s):// or git:// URL, or git@host:path")
 	}
@@ -380,4 +388,10 @@ func isValidCloneURL(cloneURL string) bool {
 	isSupportedScheme := slices.Contains(cloneURLSchemes, parsedURL.Scheme)
 	hasRepositoryPath := strings.Trim(parsedURL.Path, "/") != ""
 	return isSupportedScheme && parsedURL.Host != "" && hasRepositoryPath
+}
+
+// The user of the scp-like form git@host:path is not a secret, and url.Parse rejects that form
+func hasCloneURLCredentials(cloneURL string) bool {
+	parsedURL, err := url.Parse(cloneURL)
+	return err == nil && parsedURL.User != nil
 }

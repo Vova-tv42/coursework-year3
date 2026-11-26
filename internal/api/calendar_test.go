@@ -109,6 +109,7 @@ func TestCalendarPeriodValidation(t *testing.T) {
 		input calendarPeriodInput
 	}{
 		"empty name":        {practicePath, calendarPeriodInput{Name: ""}},
+		"name of spaces":    {practicePath, calendarPeriodInput{Name: "   "}},
 		"long name":         {practicePath, calendarPeriodInput{Name: strings.Repeat("a", 101)}},
 		"only start date":   {practicePath, calendarPeriodInput{Name: "Practice", StartDate: dateOf("2027-04-01")}},
 		"end before start":  {practicePath, calendarPeriodInput{Name: "Practice", StartDate: dateOf("2027-04-10"), EndDate: dateOf("2027-04-01")}},

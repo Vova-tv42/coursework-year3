@@ -120,6 +120,8 @@ const lastCommitFormat = new Intl.DateTimeFormat("en-GB", {
   timeZone: "Europe/Kyiv",
 });
 
+const fullNameCollator = new Intl.Collator("uk");
+
 const features = tableFeatures({
   rowSortingFeature,
   sortedRowModel: createSortedRowModel(),
@@ -134,6 +136,11 @@ function createColumns(
   return columnHelper.columns([
     columnHelper.accessor("fullName", {
       header: "Full name",
+      sortFn: (rowA, rowB) =>
+        fullNameCollator.compare(
+          rowA.original.fullName,
+          rowB.original.fullName,
+        ),
       cell: (info) => (
         <Link
           to={`/students/${info.row.original.id}`}
@@ -188,9 +195,7 @@ function createColumns(
       id: "noPracticeActivity",
       header: "Practice",
       cell: (info) =>
-        info.getValue() && (
-          <Badge variant="destructive">No practice activity</Badge>
-        ),
+        info.getValue() && <Badge variant="destructive">No activity</Badge>,
     }),
     columnHelper.accessor((student) => student.flags.rapidSeries, {
       id: "rapidSeries",
@@ -259,7 +264,7 @@ function StudentFormDialog({
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     save.mutate({
-      fullName: String(form.get("fullName")),
+      fullName: String(form.get("fullName")).trim(),
       stream,
       cloneUrl: String(form.get("cloneUrl")).trim(),
     });

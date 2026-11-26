@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 	"unicode/utf8"
 
@@ -55,6 +56,7 @@ func (s *server) updateCalendarPeriod(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	input.Name = strings.TrimSpace(input.Name)
 	if err := validateCalendarPeriodInput(input); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid_input", err.Error())
 		return

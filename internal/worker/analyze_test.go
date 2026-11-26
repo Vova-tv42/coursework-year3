@@ -275,6 +275,36 @@ func TestRewrittenHistoryIsReplaced(t *testing.T) {
 	require.NotSubset(t, test.storedSHAs(), removedSHAs)
 }
 
+func TestRenamedDefaultBranchKeepsHistory(t *testing.T) {
+	test := newWorkerTest(t, "rapid", noSizeLimit)
+	test.analyze()
+	analyzedRows := test.storedRows()
+
+	test.gitInSource("branch", "-m", "main", "develop")
+	test.analyze()
+
+	state := test.repositoryState()
+	require.Equal(t, "done", state.Status)
+	require.Equal(t, "develop", *state.DefaultBranch)
+	require.Equal(t, test.sourceHead(), *state.LastAnalyzedHead)
+	require.Equal(t, analyzedRows, test.storedRows())
+}
+
+func TestMissingDefaultBranchKeepsPreviousData(t *testing.T) {
+	test := newWorkerTest(t, "rapid", noSizeLimit)
+	test.analyze()
+	analyzedRows := test.storedRows()
+
+	test.gitInSource("branch", "-m", "main", "develop")
+	test.gitInSource("symbolic-ref", "HEAD", "refs/heads/missing")
+	test.analyze()
+
+	state := test.repositoryState()
+	require.Equal(t, "failed", state.Status)
+	require.Contains(t, *state.StatusReason, "default branch not found after fetch")
+	require.Equal(t, analyzedRows, test.storedRows())
+}
+
 func TestEmptyRepositoryIsDone(t *testing.T) {
 	test := newWorkerTest(t, "empty", noSizeLimit)
 	test.analyze()
