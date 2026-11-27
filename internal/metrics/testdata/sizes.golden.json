@@ -50,13 +50,17 @@
         "count": 0
       },
       {
-        "label": ">1000",
+        "label": "1001+",
         "count": 1
       }
     ],
     "mean": 135.609756097561,
     "median": 200,
     "nonMergeCommits": 41,
+    "largeCommitRange": {
+      "from": 1001,
+      "to": null
+    },
     "largeCommits": [
       {
         "sha": "ad511028932f444b8289403e4da3378ea643e281",

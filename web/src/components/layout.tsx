@@ -55,12 +55,6 @@ export function Layout() {
           >
             Calendar
           </NavLink>
-          <NavLink
-            to="/settings"
-            className={buttonVariants({ variant: "ghost" })}
-          >
-            Settings
-          </NavLink>
         </nav>
         <div className="ml-auto flex items-center gap-2">
           <span className="hidden sm:inline">{user.displayName}</span>

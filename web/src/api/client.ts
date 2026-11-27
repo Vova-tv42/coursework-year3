@@ -131,6 +131,7 @@ export interface CommitSizes {
   mean: number;
   median: number;
   nonMergeCommits: number;
+  largeCommitRange: CommitSizeRange;
   largeCommits: CommitSummary[];
 }
 
@@ -196,10 +197,38 @@ export interface CommitDiff {
   truncated: boolean;
 }
 
-export interface JunkPatterns {
-  patterns: string[];
+export interface SettingResponse<Value> {
+  value: Value;
   isDefault: boolean;
 }
+
+export interface JunkPatternsSetting {
+  patterns: string[];
+}
+
+// A null upper limit means the range has no end
+export interface CommitSizeRange {
+  from: number;
+  to: number | null;
+}
+
+export interface CommitSizeSettings {
+  ranges: CommitSizeRange[];
+  largeCommitLines: number | null;
+}
+
+export interface RapidSeriesSettings {
+  consecutive: { enabled: boolean; minCommits: number; maxGapSeconds: number };
+  window: { enabled: boolean; minCommits: number; windowSeconds: number };
+}
+
+export interface SettingValues {
+  "junk-patterns": JunkPatternsSetting;
+  "commit-sizes": CommitSizeSettings;
+  "rapid-series": RapidSeriesSettings;
+}
+
+export type SettingName = keyof SettingValues;
 
 interface ErrorResponse {
   code: string;
@@ -351,11 +380,27 @@ export const api = {
   updateCalendarPeriod: (periodId: number, input: CalendarPeriodInput) =>
     request<CalendarPeriod>("PUT", `/calendar/${periodId}`, input),
 
-  getJunkPatterns: () => request<JunkPatterns>("GET", "/me/junk-patterns"),
-  setJunkPatterns: (patterns: string[]) =>
-    request<JunkPatterns>("PUT", "/me/junk-patterns", { patterns }),
-  resetJunkPatterns: () => request<JunkPatterns>("DELETE", "/me/junk-patterns"),
+  getSetting: <Name extends SettingName>(name: Name) =>
+    request<SettingResponse<SettingValues[Name]>>("GET", `/settings/${name}`),
+  saveSetting: <Name extends SettingName>(
+    name: Name,
+    value: SettingValues[Name],
+  ) =>
+    request<SettingResponse<SettingValues[Name]>>(
+      "PUT",
+      `/settings/${name}`,
+      value,
+    ),
+  resetSetting: <Name extends SettingName>(name: Name) =>
+    request<SettingResponse<SettingValues[Name]>>(
+      "DELETE",
+      `/settings/${name}`,
+    ),
 };
+
+export function canEditGlobalSettings(user: User) {
+  return user.role === "coordinator" || user.role === "repo_manager";
+}
 
 export function isApiErrorWithStatus(error: unknown, status: number) {
   return error instanceof ApiError && error.status === status;
@@ -446,10 +491,11 @@ export const commitDiffQuery = (repositoryId: number, sha: string) =>
     queryFn: () => api.getCommitDiff(repositoryId, sha),
   });
 
-export const junkPatternsQuery = queryOptions({
-  queryKey: ["junk-patterns"],
-  queryFn: api.getJunkPatterns,
-});
+export const settingQuery = <Name extends SettingName>(name: Name) =>
+  queryOptions({
+    queryKey: ["settings", name],
+    queryFn: () => api.getSetting(name),
+  });
 
 export const calendarQuery = queryOptions({
   queryKey: ["calendar"],

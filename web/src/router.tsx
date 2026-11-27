@@ -23,7 +23,6 @@ import { CommitPage } from "@/pages/commit";
 import { NotFoundPage, RouteError } from "@/pages/errors";
 import { LoginPage } from "@/pages/login";
 import { RegisterPage } from "@/pages/register";
-import { SettingsPage } from "@/pages/settings";
 import { StudentPage } from "@/pages/student";
 import { StudentsPage } from "@/pages/students";
 
@@ -104,7 +103,6 @@ export const router = createBrowserRouter([
             errorElement: <RouteError />,
           },
           { path: "calendar", element: <CalendarPage /> },
-          { path: "settings", element: <SettingsPage /> },
           { path: "*", element: <NotFoundPage /> },
         ],
       },

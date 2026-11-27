@@ -28,7 +28,7 @@ func TestActivityMatchesMetrics(t *testing.T) {
 	require.Equal(t, metrics.TimeZone, activity.TimeZone)
 	require.Equal(t, metrics.DailyActivity(sourceCommits), activity.Days)
 	require.Len(t, activity.RapidSeries, 1)
-	require.Equal(t, rapidSeriesInUTC(metrics.RapidSeries(sourceCommits)), rapidSeriesInUTC(activity.RapidSeries))
+	require.Equal(t, rapidSeriesInUTC(metrics.RapidSeries(sourceCommits, metrics.DefaultRapidSeriesSettings)), rapidSeriesInUTC(activity.RapidSeries))
 }
 
 func TestCommitSizesMatchMetrics(t *testing.T) {
@@ -40,7 +40,7 @@ func TestCommitSizesMatchMetrics(t *testing.T) {
 	require.Equal(t, http.StatusOK, response.status, string(response.body))
 	sizes := decode[metrics.CommitSizeStats](t, response)
 
-	expected := metrics.CommitSizes(sourceCommits)
+	expected := metrics.CommitSizes(sourceCommits, metrics.DefaultCommitSizeSettings)
 	require.Len(t, sizes.LargeCommits, 1)
 	expected.LargeCommits = summariesInUTC(expected.LargeCommits)
 	sizes.LargeCommits = summariesInUTC(sizes.LargeCommits)

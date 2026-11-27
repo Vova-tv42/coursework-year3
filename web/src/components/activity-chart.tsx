@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import {
   activityQuery,
+  settingQuery,
   type DayActivity,
   type PeriodActivity,
   type RapidSeries,
@@ -11,10 +12,12 @@ import {
   type ChartInstance,
   type ChartOption,
 } from "@/components/chart";
+import { RapidSeriesDialog } from "@/components/settings-dialogs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -28,7 +31,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatPeriodDates } from "@/lib/utils";
+import { describeRapidSeriesRules, formatPeriodDates } from "@/lib/utils";
 import { CommitLink } from "@/pages/commit";
 
 const seriesTimeFormat = new Intl.DateTimeFormat("en-GB", {
@@ -358,6 +361,7 @@ function RapidSeriesTable({
 
 export function ActivityChart({ repositoryId }: { repositoryId: number }) {
   const activity = useQuery(activityQuery(repositoryId));
+  const rapidSeriesSettings = useQuery(settingQuery("rapid-series"));
 
   if (activity.isPending)
     return <p className="text-muted-foreground">Loading...</p>;
@@ -415,9 +419,13 @@ export function ActivityChart({ repositoryId }: { repositoryId: number }) {
           <CardHeader>
             <CardTitle>Rapid commit series</CardTitle>
             <CardDescription>
-              Three or more commits at most a minute apart. This is a signal to
-              look at, not a verdict.
+              {rapidSeriesSettings.isSuccess &&
+                `${describeRapidSeriesRules(rapidSeriesSettings.data.value)} `}
+              This is a signal to look at, not a verdict.
             </CardDescription>
+            <CardAction>
+              <RapidSeriesDialog />
+            </CardAction>
           </CardHeader>
           <CardContent>
             <RapidSeriesTable

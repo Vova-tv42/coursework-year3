@@ -220,7 +220,7 @@ func TestFullAnalysisStoresHistoryAndRapidSeries(t *testing.T) {
 		"SELECT count(*) FROM file_changes WHERE repository_id = $1", test.repositoryID).Scan(&storedFileChanges))
 	require.Equal(t, expectedFileChanges, storedFileChanges)
 
-	expectedSeries := metrics.RapidSeries(test.sourceCommits())
+	expectedSeries := metrics.RapidSeries(test.sourceCommits(), metrics.DefaultRapidSeriesSettings)
 	require.Len(t, expectedSeries, 1)
 	var storedSHAs []string
 	require.NoError(t, test.pool.QueryRow(t.Context(),

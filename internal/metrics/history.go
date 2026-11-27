@@ -5,7 +5,6 @@ import (
 	"cmp"
 	"context"
 	"encoding/json"
-	"math"
 	"slices"
 	"time"
 	_ "time/tzdata"
@@ -13,27 +12,9 @@ import (
 	"coursework/internal/git"
 )
 
-const (
-	TimeZone              = "Europe/Kyiv"
-	LargeCommitLines      = 1000
-	RapidSeriesMinCommits = 3
-	RapidSeriesMaxGap     = 60 * time.Second
-)
+const TimeZone = "Europe/Kyiv"
 
 var kyivLocation = loadLocation(TimeZone)
-
-type sizeBucketLimit struct {
-	label    string
-	maxLines int
-}
-
-var sizeBuckets = []sizeBucketLimit{
-	{label: "0-10", maxLines: 10},
-	{label: "11-100", maxLines: 100},
-	{label: "101-300", maxLines: 300},
-	{label: "301-1000", maxLines: 1000},
-	{label: ">1000", maxLines: math.MaxInt},
-}
 
 type CommitSummary struct {
 	SHA          string    `json:"sha"`
@@ -58,11 +39,12 @@ type SizeBucket struct {
 }
 
 type CommitSizeStats struct {
-	Buckets         []SizeBucket    `json:"buckets"`
-	Mean            float64         `json:"mean"`
-	Median          float64         `json:"median"`
-	NonMergeCommits int             `json:"nonMergeCommits"`
-	LargeCommits    []CommitSummary `json:"largeCommits"`
+	Buckets          []SizeBucket    `json:"buckets"`
+	Mean             float64         `json:"mean"`
+	Median           float64         `json:"median"`
+	NonMergeCommits  int             `json:"nonMergeCommits"`
+	LargeCommitRange CommitSizeRange `json:"largeCommitRange"`
+	LargeCommits     []CommitSummary `json:"largeCommits"`
 }
 
 type RapidCommitSeries struct {
@@ -94,8 +76,8 @@ func AnalyzeRepository(ctx context.Context, runner git.Runner, dir string) (Repo
 
 	return Report{
 		Activity:    DailyActivity(commits),
-		CommitSizes: CommitSizes(commits),
-		RapidSeries: RapidSeries(commits),
+		CommitSizes: CommitSizes(commits, DefaultCommitSizeSettings),
+		RapidSeries: RapidSeries(commits, DefaultRapidSeriesSettings),
 		Snapshot:    snapshot.Files,
 		Checklist:   EvaluateChecklist(snapshot),
 		CodeStats:   CodeStats(snapshot.Files, DefaultJunkPatterns),
@@ -150,14 +132,16 @@ func DailyActivity(commits []git.Commit) []DayActivity {
 	return days
 }
 
-// CommitSizes builds size statistics over non-merge commits, junk files included
-func CommitSizes(commits []git.Commit) CommitSizeStats {
+// CommitSizes builds size statistics over non-merge commits, junk files included; a commit outside every range is not in any bucket
+func CommitSizes(commits []git.Commit, settings CommitSizeSettings) CommitSizeStats {
+	largeCommitRange := settings.LargeCommitRange()
 	sizes := CommitSizeStats{
-		Buckets:      make([]SizeBucket, len(sizeBuckets)),
-		LargeCommits: []CommitSummary{},
+		Buckets:          make([]SizeBucket, len(settings.Ranges)),
+		LargeCommitRange: largeCommitRange,
+		LargeCommits:     []CommitSummary{},
 	}
-	for i, bucket := range sizeBuckets {
-		sizes.Buckets[i].Label = bucket.label
+	for i, sizeRange := range settings.Ranges {
+		sizes.Buckets[i].Label = sizeRange.Label()
 	}
 
 	var commitLines []int
@@ -168,8 +152,11 @@ func CommitSizes(commits []git.Commit) CommitSizeStats {
 
 		lines := commitSize(commit)
 		commitLines = append(commitLines, lines)
-		sizes.Buckets[bucketIndex(lines)].Count++
-		if lines > LargeCommitLines {
+		bucket := slices.IndexFunc(settings.Ranges, func(sizeRange CommitSizeRange) bool { return sizeRange.Contains(lines) })
+		if bucket >= 0 {
+			sizes.Buckets[bucket].Count++
+		}
+		if largeCommitRange.Contains(lines) {
 			sizes.LargeCommits = append(sizes.LargeCommits, Summarize(commit))
 		}
 	}
@@ -180,25 +167,86 @@ func CommitSizes(commits []git.Commit) CommitSizeStats {
 	return sizes
 }
 
-// RapidSeries returns runs of at least three commits where every gap between author dates is at most a minute
-func RapidSeries(commits []git.Commit) []RapidCommitSeries {
+// commitRun holds inclusive indexes of commits sorted by author date
+type commitRun struct {
+	first, last int
+}
+
+// RapidSeries joins the runs found by every enabled rule; runs that share a commit become one series
+func RapidSeries(commits []git.Commit, settings RapidSeriesSettings) []RapidCommitSeries {
 	sorted := sortedByAuthorDate(commits)
+	var runs []commitRun
+	if settings.Consecutive.Enabled {
+		runs = append(runs, consecutiveRuns(sorted, settings.Consecutive)...)
+	}
+	if settings.Window.Enabled {
+		runs = append(runs, windowRuns(sorted, settings.Window)...)
+	}
+
 	series := []RapidCommitSeries{}
+	for _, run := range mergeOverlappingRuns(runs) {
+		series = append(series, newRapidSeries(sorted[run.first:run.last+1]))
+	}
+
+	return series
+}
+
+// consecutiveRuns finds runs where every gap between neighbouring author dates is at most the rule's gap
+func consecutiveRuns(sorted []git.Commit, rule ConsecutiveRule) []commitRun {
+	maxGap := time.Duration(rule.MaxGapSeconds) * time.Second
+	var runs []commitRun
 	runStart := 0
 
 	for i := 1; i <= len(sorted); i++ {
-		isRunContinued := i < len(sorted) && sorted[i].AuthoredAt.Sub(sorted[i-1].AuthoredAt) <= RapidSeriesMaxGap
+		isRunContinued := i < len(sorted) && sorted[i].AuthoredAt.Sub(sorted[i-1].AuthoredAt) <= maxGap
 		if isRunContinued {
 			continue
 		}
 
-		if i-runStart >= RapidSeriesMinCommits {
-			series = append(series, newRapidSeries(sorted[runStart:i]))
+		if i-runStart >= rule.MinCommits {
+			runs = append(runs, commitRun{first: runStart, last: i - 1})
 		}
 		runStart = i
 	}
 
-	return series
+	return runs
+}
+
+// windowRuns finds every run of enough commits whose first and last author dates fit into the rule's window
+func windowRuns(sorted []git.Commit, rule WindowRule) []commitRun {
+	window := time.Duration(rule.WindowSeconds) * time.Second
+	var runs []commitRun
+	runStart := 0
+
+	for runEnd := range sorted {
+		for sorted[runEnd].AuthoredAt.Sub(sorted[runStart].AuthoredAt) > window {
+			runStart++
+		}
+
+		if runEnd-runStart+1 >= rule.MinCommits {
+			runs = append(runs, commitRun{first: runStart, last: runEnd})
+		}
+	}
+
+	return runs
+}
+
+func mergeOverlappingRuns(runs []commitRun) []commitRun {
+	slices.SortFunc(runs, func(a, b commitRun) int { return cmp.Compare(a.first, b.first) })
+
+	var merged []commitRun
+	for _, run := range runs {
+		isOverlappingPrevious := len(merged) > 0 && run.first <= merged[len(merged)-1].last
+		if !isOverlappingPrevious {
+			merged = append(merged, run)
+			continue
+		}
+
+		previous := &merged[len(merged)-1]
+		previous.last = max(previous.last, run.last)
+	}
+
+	return merged
 }
 
 func newRapidSeries(commits []git.Commit) RapidCommitSeries {
@@ -224,10 +272,6 @@ func sortedByAuthorDate(commits []git.Commit) []git.Commit {
 
 func commitSize(commit git.Commit) int {
 	return commit.LinesAdded + commit.LinesDeleted
-}
-
-func bucketIndex(lines int) int {
-	return slices.IndexFunc(sizeBuckets, func(bucket sizeBucketLimit) bool { return lines <= bucket.maxLines })
 }
 
 func mean(values []int) float64 {

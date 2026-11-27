@@ -9,6 +9,7 @@ import (
 
 	"coursework/internal/git"
 	"coursework/internal/metrics"
+	"coursework/internal/store"
 )
 
 type activityResponse struct {
@@ -62,7 +63,13 @@ func (s *server) getCommitSizes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, metrics.CommitSizes(commits))
+	settings, _, err := store.LoadSetting(r.Context(), s.pool, store.CommitSizesSetting, metrics.DefaultCommitSizeSettings)
+	if err != nil {
+		writeInternalError(w, r, err)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, metrics.CommitSizes(commits, settings))
 }
 
 // loadPeriodActivity gives the practice signal only after a successful analysis, like the student list

@@ -25,13 +25,17 @@
         "count": 0
       },
       {
-        "label": ">1000",
+        "label": "1001+",
         "count": 0
       }
     ],
     "mean": 8,
     "median": 8,
     "nonMergeCommits": 1,
+    "largeCommitRange": {
+      "from": 1001,
+      "to": null
+    },
     "largeCommits": []
   },
   "rapidSeries": [],

@@ -6,9 +6,11 @@ import {
   type CommitSummary,
 } from "@/api/client";
 import { Chart, type ChartOption } from "@/components/chart";
+import { CommitSizesDialog } from "@/components/settings-dialogs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -22,7 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { firstLine } from "@/lib/utils";
+import { firstLine, formatRange } from "@/lib/utils";
 import { CommitLink } from "@/pages/commit";
 
 const commitDateFormat = new Intl.DateTimeFormat("en-GB", {
@@ -63,11 +65,7 @@ function LargeCommitsTable({
   commits: CommitSummary[];
 }) {
   if (commits.length === 0) {
-    return (
-      <p className="text-muted-foreground">
-        No commits over 1000 changed lines.
-      </p>
-    );
+    return <p className="text-muted-foreground">No large commits.</p>;
   }
 
   return (
@@ -133,6 +131,9 @@ export function CommitSizes({ repositoryId }: { repositoryId: number }) {
             {lineCountFormat.format(sizes.data.mean)} and median{" "}
             {lineCountFormat.format(sizes.data.median)} changed lines.
           </CardDescription>
+          <CardAction>
+            <CommitSizesDialog />
+          </CardAction>
         </CardHeader>
         <CardContent>
           <Chart option={bucketChartOption(sizes.data)} height={280} />
@@ -142,7 +143,8 @@ export function CommitSizes({ repositoryId }: { repositoryId: number }) {
         <CardHeader>
           <CardTitle>Large commits</CardTitle>
           <CardDescription>
-            Commits with more than 1000 changed lines.
+            Commits with {formatRange(sizes.data.largeCommitRange)} changed
+            lines.
           </CardDescription>
         </CardHeader>
         <CardContent>

@@ -1,9 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router";
 
 import { codeStatsQuery, type LineCounts } from "@/api/client";
+import { JunkPatternsDialog } from "@/components/settings-dialogs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardAction,
@@ -111,12 +110,7 @@ export function CodeStats({ repositoryId }: { repositoryId: number }) {
             {numberFormat.format(junk.lines)} lines.
           </CardDescription>
           <CardAction>
-            <Link
-              to="/settings"
-              className={buttonVariants({ variant: "link" })}
-            >
-              Edit patterns
-            </Link>
+            <JunkPatternsDialog />
           </CardAction>
         </CardHeader>
         <CardContent>

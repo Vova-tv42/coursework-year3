@@ -273,7 +273,8 @@ func resetRepositoryIfCloneURLChanged(ctx context.Context, tx pgx.Tx, studentID 
 		UPDATE repositories
 		SET clone_url = $2, status = 'never', status_reason = NULL, default_branch = NULL,
 			hosting_metadata = NULL, analysis_started_at = NULL, analysis_finished_at = NULL,
-			last_analyzed_head = NULL, clone_size_bytes = NULL, checklist = NULL, last_commit_at = NULL
+			last_analyzed_head = NULL, clone_size_bytes = NULL, checklist = NULL, last_commit_at = NULL,
+			commit_order = NULL
 		WHERE student_id = $1 AND clone_url <> $2
 		RETURNING id`,
 		studentID, cloneURL).Scan(&repositoryID)

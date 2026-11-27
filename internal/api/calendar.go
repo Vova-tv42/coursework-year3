@@ -38,9 +38,7 @@ func (s *server) listCalendarPeriods(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) updateCalendarPeriod(w http.ResponseWriter, r *http.Request) {
-	viewer := currentUser(r)
-	canEditCalendar := viewer.Role == roleCoordinator || viewer.Role == roleRepoManager
-	if !canEditCalendar {
+	if !canEditGlobalSettings(currentUser(r)) {
 		writeError(w, http.StatusForbidden, "forbidden", "only coordinators and repository managers can edit the calendar")
 		return
 	}

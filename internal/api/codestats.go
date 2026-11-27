@@ -6,16 +6,17 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"coursework/internal/metrics"
+	"coursework/internal/store"
 )
 
-// getCodeStats applies the viewer's junk patterns at read time, so a changed list needs no new analysis
+// getCodeStats applies the junk patterns at read time, so a changed list needs no new analysis
 func (s *server) getCodeStats(w http.ResponseWriter, r *http.Request) {
 	repo, found := s.loadVisibleRepository(w, r)
 	if !found {
 		return
 	}
 
-	junkPatterns, err := s.loadJunkPatterns(r.Context(), currentUser(r).ID)
+	junkPatterns, _, err := store.LoadSetting(r.Context(), s.pool, store.JunkPatternsSetting, defaultJunkPatternsSetting)
 	if err != nil {
 		writeInternalError(w, r, err)
 		return

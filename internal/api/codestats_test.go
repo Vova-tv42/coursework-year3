@@ -17,13 +17,6 @@ func (client *apiClient) codeStats(repositoryID int64) metrics.CodeStatistics {
 	return decode[metrics.CodeStatistics](client.t, response)
 }
 
-func (client *apiClient) junkPatterns(method string, body any) junkPatternsResponse {
-	client.t.Helper()
-	response := client.call(method, "/me/junk-patterns", body)
-	require.Equal(client.t, http.StatusOK, response.status, string(response.body))
-	return decode[junkPatternsResponse](client.t, response)
-}
-
 func TestCodeStatsExcludeDefaultJunk(t *testing.T) {
 	testAPI := newTestAPI(t)
 	anna := testAPI.register("anna", roleSupervisor, nil)
@@ -73,7 +66,7 @@ func TestCodeStatsOfForeignRepositoryIsNotFound(t *testing.T) {
 	requireError(t, response, http.StatusNotFound, "not_found")
 }
 
-func TestCustomJunkPatternsApplyOnlyToTheirOwner(t *testing.T) {
+func TestJunkPatternsApplyToEveryone(t *testing.T) {
 	testAPI := newTestAPI(t)
 	anna := testAPI.register("anna", roleSupervisor, nil)
 	manager := testAPI.register("manager", roleRepoManager, nil)
@@ -81,48 +74,48 @@ func TestCustomJunkPatternsApplyOnlyToTheirOwner(t *testing.T) {
 	repositoryID := student.Repository.ID
 	defaultStats := anna.codeStats(repositoryID)
 
-	saved := anna.junkPatterns(http.MethodPut, junkPatternsInput{Patterns: []string{"**/*.md", metrics.BinaryPattern}})
-	require.Equal(t, junkPatternsResponse{Patterns: []string{"**/*.md", metrics.BinaryPattern}}, saved)
-	require.Equal(t, saved, anna.junkPatterns(http.MethodGet, nil))
+	customPatterns := junkPatternsSetting{Patterns: []string{"**/*.md", metrics.BinaryPattern}}
+	saved := callSetting[junkPatternsSetting](manager, http.MethodPut, "junk-patterns", customPatterns)
+	require.Equal(t, settingResponse[junkPatternsSetting]{Value: customPatterns}, saved)
+	require.Equal(t, saved, callSetting[junkPatternsSetting](anna, http.MethodGet, "junk-patterns", nil))
 
 	customStats := anna.codeStats(repositoryID)
 	require.Equal(t, metrics.LineCounts{Code: 80, Config: 3, Total: 83}, customStats.Lines)
 	require.Equal(t, []string{"README.md", "assets/logo.png"}, customStats.Junk.SamplePaths)
-	require.Equal(t, defaultStats, manager.codeStats(repositoryID))
-	require.True(t, manager.junkPatterns(http.MethodGet, nil).IsDefault)
 
-	reset := anna.junkPatterns(http.MethodDelete, nil)
-	require.Equal(t, junkPatternsResponse{Patterns: metrics.DefaultJunkPatterns, IsDefault: true}, reset)
+	reset := callSetting[junkPatternsSetting](manager, http.MethodDelete, "junk-patterns", nil)
+	require.Equal(t, settingResponse[junkPatternsSetting]{Value: defaultJunkPatternsSetting, IsDefault: true}, reset)
 	require.Equal(t, defaultStats, anna.codeStats(repositoryID))
 }
 
-func TestDefaultJunkPatterns(t *testing.T) {
+func TestEmptyJunkPatternListIsSaved(t *testing.T) {
 	testAPI := newTestAPI(t)
-	anna := testAPI.register("anna", roleSupervisor, nil)
+	manager := testAPI.register("manager", roleRepoManager, nil)
 
-	require.Equal(t, junkPatternsResponse{Patterns: metrics.DefaultJunkPatterns, IsDefault: true}, anna.junkPatterns(http.MethodGet, nil))
+	defaults := callSetting[junkPatternsSetting](manager, http.MethodGet, "junk-patterns", nil)
+	require.Equal(t, settingResponse[junkPatternsSetting]{Value: defaultJunkPatternsSetting, IsDefault: true}, defaults)
 
-	emptyList := anna.junkPatterns(http.MethodPut, junkPatternsInput{Patterns: []string{}})
-	require.Equal(t, junkPatternsResponse{Patterns: []string{}}, emptyList)
-	require.Equal(t, emptyList, anna.junkPatterns(http.MethodGet, nil))
+	emptyList := callSetting[junkPatternsSetting](manager, http.MethodPut, "junk-patterns", junkPatternsSetting{Patterns: []string{}})
+	require.Equal(t, settingResponse[junkPatternsSetting]{Value: junkPatternsSetting{Patterns: []string{}}}, emptyList)
+	require.Equal(t, emptyList, callSetting[junkPatternsSetting](manager, http.MethodGet, "junk-patterns", nil))
 }
 
 func TestInvalidJunkPatternsAreRejected(t *testing.T) {
 	testAPI := newTestAPI(t)
-	anna := testAPI.register("anna", roleSupervisor, nil)
+	manager := testAPI.register("manager", roleRepoManager, nil)
 
 	invalidBodies := map[string]any{
 		"missing list":  map[string]any{},
 		"null list":     map[string]any{"patterns": nil},
-		"empty pattern": junkPatternsInput{Patterns: []string{"**/vendor/**", ""}},
-		"blank pattern": junkPatternsInput{Patterns: []string{"  "}},
-		"invalid glob":  junkPatternsInput{Patterns: []string{"src/[abc"}},
+		"empty pattern": junkPatternsSetting{Patterns: []string{"**/vendor/**", ""}},
+		"blank pattern": junkPatternsSetting{Patterns: []string{"  "}},
+		"invalid glob":  junkPatternsSetting{Patterns: []string{"src/[abc"}},
 	}
 	for name, body := range invalidBodies {
 		t.Run(name, func(t *testing.T) {
-			requireError(t, anna.call(http.MethodPut, "/me/junk-patterns", body), http.StatusBadRequest, "invalid_input")
+			requireError(t, manager.call(http.MethodPut, "/settings/junk-patterns", body), http.StatusBadRequest, "invalid_input")
 		})
 	}
 
-	require.True(t, anna.junkPatterns(http.MethodGet, nil).IsDefault)
+	require.True(t, callSetting[junkPatternsSetting](manager, http.MethodGet, "junk-patterns", nil).IsDefault)
 }

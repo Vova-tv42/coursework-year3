@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import {
   api,
   calendarQuery,
+  canEditGlobalSettings,
   periodStreamLabels,
   queryClient,
   type CalendarPeriod,
@@ -157,8 +158,7 @@ function ReadOnlyPeriodRow({ period }: { period: CalendarPeriod }) {
 
 export function CalendarPage() {
   const user = useCurrentUser();
-  const canEditCalendar =
-    user.role === "coordinator" || user.role === "repo_manager";
+  const canEditCalendar = canEditGlobalSettings(user);
   const periods = useQuery(calendarQuery);
 
   return (

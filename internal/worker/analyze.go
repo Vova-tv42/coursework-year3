@@ -18,6 +18,7 @@ import (
 
 	"coursework/internal/git"
 	"coursework/internal/metrics"
+	"coursework/internal/store"
 )
 
 const (
@@ -369,7 +370,18 @@ func (w *AnalyzeWorker) save(ctx context.Context, target analysisTarget, hosting
 			return err
 		}
 
-		if err := replaceRapidSeries(ctx, tx, target.repositoryID, result.commitOrder); err != nil {
+		_, err = tx.Exec(ctx, "UPDATE repositories SET commit_order = $2 WHERE id = $1", target.repositoryID, result.commitOrder)
+		if err != nil {
+			return err
+		}
+
+		// Read after the row lock, so a concurrent settings change recomputes the series once this transaction ends
+		rapidSeriesSettings, _, err := store.LoadSetting(ctx, tx, store.RapidSeriesSetting, metrics.DefaultRapidSeriesSettings)
+		if err != nil {
+			return err
+		}
+
+		if err := ReplaceRapidSeries(ctx, tx, target.repositoryID, rapidSeriesSettings); err != nil {
 			return err
 		}
 
@@ -430,16 +442,23 @@ func insertCommits(ctx context.Context, tx pgx.Tx, repositoryID int64, commits [
 	return tx.SendBatch(ctx, batch).Close()
 }
 
-// replaceRapidSeries recomputes the series over all stored commits, ordered like git log
-func replaceRapidSeries(ctx context.Context, tx pgx.Tx, repositoryID int64, commitOrder []string) error {
+// ReplaceRapidSeries recomputes the series over all stored commits in the order of git log saved by the last analysis
+func ReplaceRapidSeries(ctx context.Context, tx pgx.Tx, repositoryID int64, settings metrics.RapidSeriesSettings) error {
 	if _, err := tx.Exec(ctx, "DELETE FROM rapid_series WHERE repository_id = $1", repositoryID); err != nil {
+		return err
+	}
+
+	var commitOrder []string
+	err := tx.QueryRow(ctx, "SELECT commit_order FROM repositories WHERE id = $1", repositoryID).Scan(&commitOrder)
+	if err != nil {
 		return err
 	}
 
 	rows, err := tx.Query(ctx, `
 		SELECT sha, author_name, author_email, authored_at, committed_at, message, is_merge, lines_added, lines_deleted
 		FROM commits
-		WHERE repository_id = $1`,
+		WHERE repository_id = $1
+		ORDER BY authored_at DESC, committed_at DESC, sha`,
 		repositoryID)
 
 	if err != nil {
@@ -458,20 +477,8 @@ func replaceRapidSeries(ctx context.Context, tx pgx.Tx, repositoryID int64, comm
 		return err
 	}
 
-	commitsBySHA := make(map[string]git.Commit, len(storedCommits))
-	for _, commit := range storedCommits {
-		commitsBySHA[commit.SHA] = commit
-	}
-
-	orderedCommits := make([]git.Commit, 0, len(storedCommits))
-	for _, sha := range commitOrder {
-		if commit, found := commitsBySHA[sha]; found {
-			orderedCommits = append(orderedCommits, commit)
-		}
-	}
-
 	batch := &pgx.Batch{}
-	for _, series := range metrics.RapidSeries(orderedCommits) {
+	for _, series := range metrics.RapidSeries(orderedByCommitOrder(storedCommits, commitOrder), settings) {
 		seriesSHAs := make([]string, 0, len(series.Commits))
 		for _, commit := range series.Commits {
 			seriesSHAs = append(seriesSHAs, commit.SHA)
@@ -483,6 +490,27 @@ func replaceRapidSeries(ctx context.Context, tx pgx.Tx, repositoryID int64, comm
 	}
 
 	return tx.SendBatch(ctx, batch).Close()
+}
+
+func orderedByCommitOrder(commits []git.Commit, commitOrder []string) []git.Commit {
+	// Repositories analyzed before commit_order existed keep the date order of the stored commits
+	if commitOrder == nil {
+		return commits
+	}
+
+	commitsBySHA := make(map[string]git.Commit, len(commits))
+	for _, commit := range commits {
+		commitsBySHA[commit.SHA] = commit
+	}
+
+	orderedCommits := make([]git.Commit, 0, len(commits))
+	for _, sha := range commitOrder {
+		if commit, found := commitsBySHA[sha]; found {
+			orderedCommits = append(orderedCommits, commit)
+		}
+	}
+
+	return orderedCommits
 }
 
 func replaceSnapshot(ctx context.Context, tx pgx.Tx, repositoryID int64, files []metrics.SnapshotFile) error {
